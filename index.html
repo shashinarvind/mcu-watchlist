@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Marvel Watch Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111420;
+    --surface2: #1a1f2e;
+    --red: #e31c25;
+    --red-dim: #8b1118;
+    --gold: #c9a84c;
+    --text: #dde2f0;
+    --text-muted: #6b7494;
+    --border: #1f2540;
+    --checked-bg: #0d1a0e;
+    --checked-border: #2a5c2e;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: inherit; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; min-height: 100%; }
+
+  header {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 100;
+    background: rgba(10, 12, 16, 0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 24px;
+  }
+  .header-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: 0.04em;
+    color: var(--red);
+    flex-shrink: 0;
+  }
+  .logo span { color: var(--text); }
+  .progress-block {
+    flex: 1;
+    min-width: 200px;
+  }
+  .progress-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 0.06em;
+  }
+  .progress-stats strong { color: var(--text); font-size: 0.9rem; }
+  .progress-bar-bg {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--red-dim), var(--red));
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+  .pct {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--gold);
+    flex-shrink: 0;
+    min-width: 52px;
+    text-align: right;
+  }
+  .toggle-wrap {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .toggle-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--surface2);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+  .toggle-switch input:checked + .toggle-track { background: var(--red-dim); border-color: var(--red); }
+  .toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 12px;
+    height: 12px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    transition: transform 0.2s, background 0.2s;
+  }
+  .toggle-switch input:checked ~ .toggle-thumb { transform: translateX(16px); background: #fff; }
+
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+
+  .phase-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    color: var(--red);
+    text-transform: uppercase;
+    margin: 36px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .phase-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .phase-label:first-of-type { margin-top: 0; }
+  .phase-label.xmen { color: #f0c030; }
+  .phase-label.xmen::after { background: #2e2800; }
+  .universe-divider {
+    margin: 48px 0 36px;
+    border: none;
+    border-top: 2px solid #2e2800;
+    position: relative;
+  }
+  .universe-divider::after {
+    content: 'FOX / 20TH CENTURY STUDIOS';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg);
+    padding: 0 14px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: #f0c030;
+    white-space: nowrap;
+  }
+
+  .section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin: 20px 0 8px;
+    padding-left: 2px;
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 14px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    margin-bottom: 4px;
+    user-select: none;
+  }
+  .item:hover { background: var(--surface); border-color: var(--border); }
+  .item.checked {
+    background: var(--checked-bg);
+    border-color: var(--checked-border);
+  }
+  .item.checked .item-title { color: var(--text-muted); text-decoration: line-through; text-decoration-color: #3a5c3e; }
+  .item.checked .item-meta { color: #3a5c3e; }
+
+  .custom-checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 2px solid var(--border);
+    background: transparent;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    transition: all 0.15s;
+  }
+  .item.checked .custom-checkbox {
+    background: #2a7a30;
+    border-color: #2a7a30;
+  }
+  .checkmark {
+    display: none;
+    width: 11px;
+    height: 8px;
+    fill: none;
+    stroke: #fff;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .item.checked .checkmark { display: block; }
+
+  .item-info { flex: 1; }
+  .item-title {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .item-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 0.04em;
+  }
+  .badge {
+    font-size: 0.65rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .badge-movie { background: #1a1228; color: #9b7fe8; border: 1px solid #2d1f5a; }
+  .badge-tv    { background: #101a28; color: #5b9ee8; border: 1px solid #1a3560; }
+  .badge-special { background: #1a1410; color: #c4874a; border: 1px solid #3d2810; }
+  .badge-optional { background: transparent; color: var(--text-muted); border: 1px solid #2a2f44; font-style: italic; }
+  .essential-star { color: var(--gold); font-size: 0.75em; margin-left: 5px; vertical-align: middle; line-height: 1; }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { /* already dark */ }
+  }
+  @media (max-width: 500px) {
+    header { padding: 14px 16px; }
+    main { padding: 24px 16px 48px; }
+    .pct { font-size: 1.3rem; }
+    .logo { font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">MARVEL<span> TRACKER</span></div>
+    <div class="progress-block">
+      <div class="progress-stats">
+        <span><strong id="seen-count">0</strong> of <strong id="total-count">0</strong> watched</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-bar"></div>
+      </div>
+    </div>
+    <div class="pct" id="pct-text">0%</div>
+  </div>
+  <div class="header-inner">
+    <div class="toggle-wrap">
+      <label class="toggle-switch">
+        <input type="checkbox" id="show-optional" checked>
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+      <span class="toggle-label" id="toggle-label">Showing optional items</span>
+    </div>
+  </div>
+</header>
+
+<main id="list"></main>
+
+<script>
+const ITEMS = [
+  // Phase 1
+  // optional: true = fun but skippable, false/omitted = essential
+  { phase: "Phase 1 — The Infinity Saga", section: null, id: "im1", title: "Iron Man", year: 2008, type: "movie", essential: true },
+  { id: "ih", title: "The Incredible Hulk", year: 2008, type: "movie" },
+  { id: "im2", title: "Iron Man 2", year: 2010, type: "movie" },
+  { id: "thor1", title: "Thor", year: 2011, type: "movie", essential: true },
+  { id: "cap1", title: "Captain America: The First Avenger", year: 2011, type: "movie", essential: true },
+  { id: "avengers1", title: "The Avengers", year: 2012, type: "movie", essential: true },
+  // Phase 2
+  { phase: "Phase 2 — The Infinity Saga", id: "im3", title: "Iron Man 3", year: 2013, type: "movie" },
+  { id: "thor2", title: "Thor: The Dark World", year: 2013, type: "movie" },
+  { id: "cap2", title: "Captain America: The Winter Soldier", year: 2014, type: "movie", essential: true },
+  { id: "gotg1", title: "Guardians of the Galaxy", year: 2014, type: "movie", essential: true },
+  { id: "gotg2015", title: "Guardians of the Galaxy Vol. 2 (interlude — skip to Vol. 2 below)", year: null, type: null, skip: true },
+  { id: "ultron", title: "Avengers: Age of Ultron", year: 2015, type: "movie", essential: true },
+  { id: "antman1", title: "Ant-Man", year: 2015, type: "movie" },
+  // Phase 3
+  { phase: "Phase 3 — The Infinity Saga", id: "cw", title: "Captain America: Civil War", year: 2016, type: "movie", essential: true },
+  { id: "bpanther1", title: "Black Panther", year: 2018, type: "movie", essential: true },
+  { id: "spidey1", title: "Spider-Man: Homecoming", year: 2017, type: "movie" },
+  { id: "drstrange1", title: "Doctor Strange", year: 2016, type: "movie", essential: true },
+  { id: "gotg2", title: "Guardians of the Galaxy Vol. 2", year: 2017, type: "movie" },
+  { id: "thor3", title: "Thor: Ragnarok", year: 2017, type: "movie", essential: true },
+  { id: "aw", title: "Avengers: Infinity War", year: 2018, type: "movie", essential: true },
+  { id: "antman2", title: "Ant-Man and the Wasp", year: 2018, type: "movie" },
+  { id: "camarvel", title: "Captain Marvel", year: 2019, type: "movie", essential: true },
+  { id: "endgame", title: "Avengers: Endgame", year: 2019, type: "movie", essential: true },
+  { id: "spidey2", title: "Spider-Man: Far From Home", year: 2019, type: "movie" },
+  // Phase 4
+  { phase: "Phase 4 — The Multiverse Saga", id: "wandavision", title: "WandaVision", year: 2021, type: "tv", note: "Disney+", essential: true },
+  { id: "fatws", title: "The Falcon and the Winter Soldier", year: 2021, type: "tv", note: "Disney+" },
+  { id: "loki1", title: "Loki — Season 1", year: 2021, type: "tv", note: "Disney+", essential: true },
+  { id: "bw", title: "Black Widow", year: 2021, type: "movie" },
+  { id: "shang", title: "Shang-Chi and the Legend of the Ten Rings", year: 2021, type: "movie" },
+  { id: "whatif1", title: "What If…? — Season 1", year: 2021, type: "tv", note: "Disney+ animated", optional: true },
+  { id: "eternals", title: "Eternals", year: 2021, type: "movie", optional: true },
+  { id: "hawkeye", title: "Hawkeye", year: 2021, type: "tv", note: "Disney+" },
+  { id: "drstrange2", title: "Doctor Strange in the Multiverse of Madness", year: 2022, type: "movie", essential: true },
+  { id: "moonknight", title: "Moon Knight", year: 2022, type: "tv", note: "Disney+" },
+  { id: "ms_marvel", title: "Ms. Marvel", year: 2022, type: "tv", note: "Disney+", optional: true },
+  { id: "thor4", title: "Thor: Love and Thunder", year: 2022, type: "movie" },
+  { id: "she_hulk", title: "She-Hulk: Attorney at Law", year: 2022, type: "tv", note: "Disney+", optional: true },
+  { id: "werewolf", title: "Werewolf by Night", year: 2022, type: "special", note: "Disney+ special", optional: true },
+  { id: "bpanther2", title: "Black Panther: Wakanda Forever", year: 2022, type: "movie", essential: true },
+  { id: "guardiansholiday", title: "The Guardians of the Galaxy Holiday Special", year: 2022, type: "special", note: "Disney+ special", optional: true },
+  { id: "antman3", title: "Ant-Man and the Wasp: Quantumania", year: 2023, type: "movie" },
+  // Phase 5
+  { phase: "Phase 5 — The Multiverse Saga", id: "gotg3", title: "Guardians of the Galaxy Vol. 3", year: 2023, type: "movie", essential: true },
+  { id: "secret_invasion", title: "Secret Invasion", year: 2023, type: "tv", note: "Disney+", optional: true },
+  { id: "loki2", title: "Loki — Season 2", year: 2023, type: "tv", note: "Disney+", essential: true },
+  { id: "whatif2", title: "What If…? — Season 2", year: 2023, type: "tv", note: "Disney+ animated", optional: true },
+  { id: "echo", title: "Echo", year: 2024, type: "tv", note: "Disney+", optional: true },
+  { id: "ironheart", title: "Ironheart", year: 2025, type: "tv", note: "Disney+", optional: true },
+  { id: "agatha", title: "Agatha All Along", year: 2024, type: "tv", note: "Disney+", optional: true },
+  { id: "spidey3", title: "Spider-Man: No Way Home", year: 2021, type: "movie", note: "Best after Loki S1 & Multiverse setup", essential: true },
+  { id: "daredevil", title: "Daredevil: Born Again", year: 2025, type: "tv", note: "Disney+" },
+  { id: "wonderman", title: "Wonder Man", year: 2025, type: "tv", note: "Disney+", optional: true },
+  // Phase 6
+  { phase: "Phase 6 — The Multiverse Saga", id: "thunderbolts", title: "Thunderbolts*", year: 2025, type: "movie", essential: true },
+  { id: "ff", title: "The Fantastic Four: First Steps", year: 2025, type: "movie", essential: true },
+  { id: "spidey4", title: "Spider-Man: Brand New Day", year: 2026, type: "movie", essential: true },
+  { id: "avengers5", title: "Avengers: Doomsday", year: 2026, type: "movie", essential: true },
+  { id: "visionquest", title: "VisionQuest", year: 2026, type: "tv", note: "Disney+" },
+  { id: "avengers6", title: "Avengers: Secret Wars", year: 2027, type: "movie", essential: true },
+
+  // X-Men (watch order, optional = not essential for MCU/Doomsday)
+  { divider: true },
+  { phase: "X-Men — Watch Order", xmen: true, id: "xfc", title: "X-Men: First Class", year: 2011, type: "movie", note: "Set in the 1960s", optional: true },
+  { id: "xow", title: "X-Men Origins: Wolverine", year: 2009, type: "movie", note: "Set in the 1970s–80s", optional: true },
+  { id: "xm1", title: "X-Men", year: 2000, type: "movie", note: "Set in the 2000s" },
+  { id: "xm2", title: "X2: X-Men United", year: 2003, type: "movie" },
+  { id: "xm3", title: "X-Men: The Last Stand", year: 2006, type: "movie" },
+  { id: "xwolv", title: "The Wolverine", year: 2013, type: "movie", note: "After The Last Stand", optional: true },
+  { id: "xdofp", title: "X-Men: Days of Future Past", year: 2014, type: "movie" },
+  { id: "xapoc", title: "X-Men: Apocalypse", year: 2016, type: "movie", note: "Set in the 1980s", optional: true },
+  { id: "dp1", title: "Deadpool", year: 2016, type: "movie" },
+  { id: "xdk", title: "Dark Phoenix", year: 2019, type: "movie", note: "Set in the 1990s", optional: true },
+  { id: "dp2", title: "Deadpool 2", year: 2018, type: "movie" },
+  { id: "logan", title: "Logan", year: 2017, type: "movie", note: "Set in 2029" },
+  { id: "nm", title: "The New Mutants", year: 2020, type: "movie", optional: true },
+  { id: "dpw", title: "Deadpool & Wolverine", year: 2024, type: "movie", note: "Bridges Fox universe into MCU" },
+];
+
+// Filter out skip placeholders
+const items = ITEMS.filter(i => !i.skip);
+
+function getStored() {
+  try {
+    const raw = localStorage.getItem('marvel_seen');
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+function setStored(obj) {
+  try { localStorage.setItem('marvel_seen', JSON.stringify(obj)); } catch {}
+}
+
+let seen = getStored();
+let showOptional = true;
+
+function updateStats() {
+  const filtered = items.filter(i => i.id && (showOptional || !i.optional));
+  const total = filtered.length;
+  const count = filtered.filter(i => seen[i.id]).length;
+  const pct = total ? Math.round((count / total) * 100) : 0;
+  document.getElementById('total-count').textContent = total;
+  document.getElementById('seen-count').textContent = count;
+  document.getElementById('pct-text').textContent = pct + '%';
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+function badgeHTML(type) {
+  if (type === 'movie') return '<span class="badge badge-movie">Film</span>';
+  if (type === 'tv') return '<span class="badge badge-tv">Series</span>';
+  if (type === 'special') return '<span class="badge badge-special">Special</span>';
+  return '';
+}
+
+function render() {
+  const list = document.getElementById('list');
+  let html = '';
+  let currentPhase = null;
+
+  items.forEach(item => {
+    if (item.divider) {
+      html += `<hr class="universe-divider">`;
+      return;
+    }
+    if (item.phase && item.phase !== currentPhase) {
+      currentPhase = item.phase;
+      html += `<div class="phase-label${item.xmen ? ' xmen' : ''}">${item.phase}</div>`;
+    }
+    if (!item.id) return;
+    const isChecked = !!seen[item.id];
+    const meta = [item.year, item.note].filter(Boolean).join(' · ');
+    html += `
+      <div class="item${isChecked ? ' checked' : ''}" data-id="${item.id}" data-optional="${item.optional ? 'true' : 'false'}" role="checkbox" aria-checked="${isChecked}" tabindex="0">
+        <div class="custom-checkbox">
+          <svg class="checkmark" viewBox="0 0 11 8"><polyline points="1,4 4,7 10,1"/></svg>
+        </div>
+        <div class="item-info">
+          <div class="item-title">${item.title}${item.essential ? '<span class="essential-star">★</span>' : ''}</div>
+          ${meta ? `<div class="item-meta">${meta}</div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0">
+          ${badgeHTML(item.type)}
+          ${item.optional ? '<span class="badge badge-optional">Optional</span>' : ''}
+        </div>
+      </div>`;
+  });
+
+  list.innerHTML = html;
+
+  // Apply visibility based on toggle
+  list.querySelectorAll('.item[data-optional="true"]').forEach(el => {
+    el.style.display = showOptional ? '' : 'none';
+  });
+
+  list.querySelectorAll('.item').forEach(el => {
+    const toggle = () => {
+      const id = el.dataset.id;
+      seen[id] = !seen[id];
+      if (!seen[id]) delete seen[id];
+      setStored(seen);
+      el.classList.toggle('checked', !!seen[id]);
+      el.setAttribute('aria-checked', !!seen[id]);
+      updateStats();
+    };
+    el.addEventListener('click', toggle);
+    el.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); } });
+  });
+
+  updateStats();
+}
+
+render();
+
+document.getElementById('show-optional').addEventListener('change', function() {
+  showOptional = this.checked;
+  document.getElementById('toggle-label').textContent = showOptional ? 'Showing optional items' : 'Hiding optional items';
+  document.querySelectorAll('.item[data-optional="true"]').forEach(el => {
+    el.style.display = showOptional ? '' : 'none';
+  });
+  updateStats();
+});
+</script>
+</body>
+</html>
