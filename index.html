@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Marvel Watch Tracker</title>
+<meta name="description" content="Track your Marvel Cinematic Universe watch order, ask spoiler-safe questions and test yourself with trivia.">
+<meta name="theme-color" content="#0a0c10"><meta name="color-scheme" content="dark light">
+<meta property="og:title" content="Marvel Watch Tracker"><meta property="og:type" content="website">
+<meta property="og:description" content="Watch-order tracker, spoiler-safe Q&A and Marvel trivia.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%23e31c25'/%3E%3Ctext x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='700'%3EM%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111420;
+    --surface2: #1a1f2e;
+    --red: #ff3b44;
+    --red-dim: #8b1118;
+    --gold: #c9a84c;
+    --text: #dde2f0;
+    --text-muted: #8c95b5;
+    --border: #1f2540;
+    --checked-bg: #0d1a0e;
+    --checked-border: #2a5c2e;
+    --expand-bg: #0d1220;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: inherit; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; min-height: 100%; }
+
+  nav {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 200;
+    background: rgba(10,12,16,0.97); backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-inner {
+    max-width: 760px; margin: 0 auto;
+    display: flex; align-items: center;
+  }
+  .logo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 1.4rem; letter-spacing: 0.04em;
+    color: var(--red); padding: 16px 24px;
+    flex-shrink: 0; border-right: 1px solid var(--border);
+  }
+  .logo span { color: var(--text); }
+  .nav-tabs { display: flex; flex: 1; padding: 0 12px; }
+  .nav-tab {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 0.78rem;
+    font-weight: 600; letter-spacing: 0.1em; color: var(--text-muted);
+    padding: 18px 16px; cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    user-select: none; text-transform: uppercase;
+  }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--red); border-bottom-color: var(--red); }
+
+  .tracker-header {
+    background: rgba(10,12,16,0.96);
+    border-bottom: 1px solid var(--border); padding: 14px 24px;
+  }
+  .header-inner {
+    max-width: 760px; margin: 0 auto;
+    display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  }
+  .progress-block { flex: 1; min-width: 200px; }
+  .progress-stats {
+    display: flex; justify-content: space-between;
+    font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px;
+    font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.06em;
+  }
+  .progress-stats strong { color: var(--text); font-size: 0.9rem; }
+  .progress-bar-bg { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .progress-bar-fill {
+    height: 100%; background: linear-gradient(90deg, var(--red-dim), var(--red));
+    border-radius: 3px; transition: width 0.3s ease; width: 0%;
+  }
+  .pct {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 1.6rem;
+    font-weight: 700; color: var(--gold); flex-shrink: 0; min-width: 52px; text-align: right;
+  }
+  .toggle-wrap {
+    width: 100%; display: flex; align-items: center; gap: 10px;
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+  }
+  .toggle-label {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 0.75rem;
+    letter-spacing: 0.06em; color: var(--text-muted); cursor: pointer; user-select: none;
+  }
+  .toggle-switch { position: relative; width: 36px; height: 20px; flex-shrink: 0; cursor: pointer; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .toggle-track {
+    position: absolute; inset: 0; background: var(--surface2);
+    border-radius: 20px; border: 1px solid var(--border); transition: background 0.2s;
+  }
+  .toggle-switch input:checked + .toggle-track { background: var(--red-dim); border-color: var(--red); }
+  .toggle-thumb {
+    position: absolute; top: 3px; left: 3px; width: 12px; height: 12px;
+    background: var(--text-muted); border-radius: 50%; transition: transform 0.2s, background 0.2s;
+  }
+  .toggle-switch input:checked ~ .toggle-thumb { transform: translateX(16px); background: #fff; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  .phase-label {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 0.7rem; font-weight: 600;
+    letter-spacing: 0.18em; color: var(--red); text-transform: uppercase;
+    margin: 36px 0 10px; display: flex; align-items: center; gap: 10px;
+  }
+  .phase-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .phase-label:first-of-type { margin-top: 0; }
+  .phase-label.xmen { color: #f0c030; }
+  .phase-label.xmen::after { background: #2e2800; }
+  .universe-divider {
+    margin: 48px 0 36px; border: none; border-top: 2px solid #2e2800; position: relative;
+  }
+  .universe-divider::after {
+    content: 'FOX / 20TH CENTURY STUDIOS';
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    background: var(--bg); padding: 0 14px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.65rem; letter-spacing: 0.2em; color: #f0c030; white-space: nowrap;
+  }
+
+  .item-wrap { margin-bottom: 4px; border-radius: 6px; overflow: hidden; }
+  .item {
+    display: flex; align-items: center; gap: 14px; padding: 11px 14px;
+    border: 1px solid transparent; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    user-select: none; background: transparent;
+  }
+  .item:hover { background: var(--surface); border-color: var(--border); }
+  .item.checked { background: var(--checked-bg); border-color: var(--checked-border); }
+  .item.checked .item-title { color: var(--text-muted); text-decoration: line-through; text-decoration-color: #3a5c3e; }
+  .item.checked .item-meta { color: #3a5c3e; }
+
+  .custom-checkbox {
+    width: 20px; height: 20px; border-radius: 4px;
+    border: 2px solid var(--border); background: transparent; flex-shrink: 0;
+    display: grid; place-items: center; transition: all 0.15s;
+  }
+  .item.checked .custom-checkbox { background: #2a7a30; border-color: #2a7a30; }
+  .checkmark {
+    display: none; width: 11px; height: 8px; fill: none; stroke: #fff;
+    stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .item.checked .checkmark { display: block; }
+  .item-info { flex: 1; }
+  .item-title { font-size: 0.95rem; font-weight: 500; color: var(--text); line-height: 1.3; }
+  .item-meta {
+    font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;
+    font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.04em;
+  }
+  .badge {
+    font-size: 0.65rem; font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 0.08em; font-weight: 600; padding: 2px 7px; border-radius: 3px; flex-shrink: 0;
+  }
+  .badge-movie  { background: #1a1228; color: #9b7fe8; border: 1px solid #2d1f5a; }
+  .badge-tv     { background: #101a28; color: #5b9ee8; border: 1px solid #1a3560; }
+  .badge-special{ background: #1a1410; color: #c4874a; border: 1px solid #3d2810; }
+  .badge-optional { background: transparent; color: var(--text-muted); border: 1px solid #2a2f44; font-style: italic; }
+  .essential-star { color: var(--gold); font-size: 0.75em; margin-left: 5px; vertical-align: middle; }
+
+  .expand-btn {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 1px solid var(--border); background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-size: 0.7rem;
+    transition: all 0.2s; cursor: pointer; flex-shrink: 0;
+  }
+  .expand-btn:hover { border-color: var(--red); color: var(--red); }
+  .item-wrap.expanded .expand-btn { background: var(--red-dim); border-color: var(--red); color: #fff; transform: rotate(180deg); }
+
+  .item-detail {
+    display: none; background: var(--expand-bg);
+    border: 1px solid var(--border); border-top: none;
+    border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;
+    padding: 16px 16px 16px 48px;
+  }
+  .item-wrap.expanded .item-detail { display: block; }
+
+  .loading-row {
+    color: var(--text-muted); font-size: 0.8rem;
+    font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.06em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .spin {
+    width: 14px; height: 14px; border: 2px solid var(--border);
+    border-top-color: var(--red); border-radius: 50%;
+    animation: spin 0.7s linear infinite; flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .detail-blurb { font-size: 0.85rem; line-height: 1.6; color: #adb5cc; margin-bottom: 14px; }
+  .detail-row { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
+  .detail-imdb { display: flex; align-items: center; gap: 6px; font-family: 'Barlow Condensed', sans-serif; font-size: 0.82rem; color: var(--text-muted); }
+  .imdb-badge { background: #f5c518; color: #000; font-weight: 700; font-size: 0.65rem; padding: 2px 5px; border-radius: 3px; }
+  .imdb-score { color: var(--gold); font-weight: 600; font-size: 0.95rem; }
+  .detail-cast { font-family: 'Barlow Condensed', sans-serif; font-size: 0.82rem; color: var(--text-muted); }
+  .cast-names { color: #adb5cc; }
+
+  /* SEARCH PAGE */
+  .search-page { max-width: 760px; margin: 0 auto; padding: 40px 24px 64px; }
+  .search-hero { text-align: center; margin-bottom: 32px; }
+  .search-hero h1 {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 2rem; font-weight: 700;
+    color: var(--text); margin-bottom: 6px;
+  }
+  .search-hero p { font-size: 0.85rem; color: var(--text-muted); }
+  .search-input-wrap {
+    display: flex; gap: 10px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; margin-bottom: 20px; transition: border-color 0.2s;
+  }
+  .search-input-wrap:focus-within { border-color: var(--red); }
+  .search-input {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--text); font-family: 'Barlow', sans-serif; font-size: 0.95rem; padding: 6px 8px;
+  }
+  .search-input::placeholder { color: var(--text-muted); }
+  .search-btn {
+    background: var(--red); color: #fff; border: none; border-radius: 6px; cursor: pointer;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 0.8rem;
+    letter-spacing: 0.08em; padding: 8px 18px; transition: background 0.15s; flex-shrink: 0;
+  }
+  .search-btn:hover { background: #ff2d38; }
+  .search-btn:disabled { background: var(--red-dim); cursor: not-allowed; opacity: 0.7; }
+  .search-suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+  .chip {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 0.72rem; letter-spacing: 0.06em;
+    color: var(--text-muted); background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 12px; cursor: pointer; transition: all 0.15s;
+  }
+  .chip:hover { color: var(--text); border-color: var(--red); }
+
+  .result-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 24px; min-height: 80px;
+  }
+  .result-meta {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 0.72rem; letter-spacing: 0.08em;
+    color: var(--text-muted); margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .verified-badge { color: #4caf8b; display: flex; align-items: center; gap: 4px; }
+  .result-body { font-size: 0.9rem; line-height: 1.75; color: #c0c8dd; }
+  .result-body p { margin-bottom: 10px; }
+  .result-body p:last-child { margin-bottom: 0; }
+
+  .spoiler-section { margin-top: 22px; }
+  .spoiler-divider {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    font-family: 'Barlow Condensed', sans-serif; font-size: 0.7rem; letter-spacing: 0.12em;
+    color: var(--red); text-transform: uppercase;
+  }
+  .spoiler-divider::before { content: ''; flex: 0 0 16px; height: 1px; background: var(--red); }
+  .spoiler-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .spoiler-container { position: relative; }
+  .spoiler-content { font-size: 0.9rem; line-height: 1.75; color: #c0c8dd; }
+  .spoiler-content p { margin-bottom: 10px; }
+  .spoiler-blur {
+    position: absolute; inset: -6px;
+    background: rgba(20, 8, 12, 0.96);
+    border-radius: 6px; border: 1px solid #3a1522;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: opacity 0.25s;
+  }
+  .spoiler-blur-label {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 0.8rem; letter-spacing: 0.1em;
+    color: #ff6b7a; display: flex; align-items: center; gap: 8px;
+  }
+  .spoiler-blur.gone { display: none; }
+
+  .sources-row {
+    margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border);
+    font-family: 'Barlow Condensed', sans-serif; font-size: 0.7rem; letter-spacing: 0.06em; color: var(--text-muted);
+  }
+  .sources-list { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .source-pill { background: var(--surface2); border: 1px solid var(--border); padding: 3px 10px; border-radius: 3px; }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-family: 'Barlow Condensed', sans-serif; font-size: 0.85rem; letter-spacing: 0.06em; }
+  .empty-icon { font-size: 2rem; margin-bottom: 12px; opacity: 0.4; }
+
+  /* streaming cursor */
+  .cursor { display: inline-block; width: 2px; height: 1em; background: var(--red); margin-left: 2px; vertical-align: text-bottom; animation: blink 0.8s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+
+  /* TRIVIA PAGE */
+  .tv-page { max-width: 760px; margin: 0 auto; padding: 40px 24px 64px; }
+  .tv-hero { text-align: center; margin-bottom: 32px; }
+  .tv-hero h1 { font-family: 'Barlow Condensed', sans-serif; font-size: 2rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .tv-hero p { font-size: 0.85rem; color: var(--text-muted); }
+  .tv-hide { display: none; }
+  .tv-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin-bottom: 14px; }
+  .tv-card h2 {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 0.7rem; font-weight: 600;
+    letter-spacing: 0.18em; color: var(--red); text-transform: uppercase;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 10px;
+  }
+  .tv-card h2::after { content: ''; flex: 1; height: 1px; background: var(--border); order: 1; }
+  .tv-card h2 button {
+    order: 2; background: none; border: none; cursor: pointer; padding: 0;
+    font-family: 'Barlow Condensed', sans-serif; font-size: 0.7rem; letter-spacing: 0.12em;
+    color: var(--text-muted); text-transform: uppercase; transition: color 0.15s;
+  }
+  .tv-card h2 button:hover { color: var(--red); }
+  .tv-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tv-chip {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 0.8rem; letter-spacing: 0.06em;
+    color: var(--text-muted); background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 14px; cursor: pointer; transition: all 0.15s;
+  }
+  .tv-chip:hover { color: var(--text); border-color: var(--red); }
+  .tv-chip[aria-pressed=true] { background: var(--red-dim); border-color: var(--red); color: #fff; }
+  .tv-btn {
+    display: block; width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer;
+    background: var(--red); color: #fff; font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600; font-size: 0.95rem; letter-spacing: 0.1em; text-transform: uppercase;
+    transition: background 0.15s;
+  }
+  .tv-btn:hover { background: #ff2d38; }
+  .tv-btn:disabled { background: var(--red-dim); cursor: not-allowed; opacity: 0.7; }
+  .tv-btn.tv-alt { background: transparent; border: 1px solid var(--border); color: var(--text-muted); margin-top: 10px; }
+  .tv-btn.tv-alt:hover { border-color: var(--red); color: var(--text); }
+  .tv-info {
+    color: var(--text-muted); font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.85rem; letter-spacing: 0.06em; text-align: center; margin: 12px 0;
+  }
+  .tv-bar { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin: 6px 0 16px; }
+  .tv-bar i { display: block; height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, var(--red-dim), var(--red)); transition: width 0.3s ease; }
+  .tv-meta {
+    display: flex; justify-content: space-between; color: var(--text-muted);
+    font-family: 'Barlow Condensed', sans-serif; font-size: 0.8rem; letter-spacing: 0.06em;
+  }
+  .tv-q { font-size: 1.2rem; font-weight: 500; line-height: 1.4; color: var(--text); margin: 10px 0 18px; }
+  .tv-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tv-tag {
+    font-family: 'Barlow Condensed', sans-serif; font-size: 0.65rem; letter-spacing: 0.08em;
+    font-weight: 600; padding: 2px 7px; border-radius: 3px; background: #1a1228; color: #9b7fe8; border: 1px solid #2d1f5a;
+  }
+  .tv-input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: 'Barlow', sans-serif; font-size: 0.95rem; padding: 12px 14px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .tv-input:focus { border-color: var(--red); }
+  .tv-input::placeholder { color: var(--text-muted); }
+  .tv-input:disabled { opacity: 0.6; }
+  .tv-fb { margin-top: 14px; padding: 12px 14px; border-radius: 6px; font-size: 0.9rem; font-weight: 500; border: 1px solid; }
+  .tv-fb.tv-ok { background: var(--checked-bg); border-color: var(--checked-border); color: #4caf8b; }
+  .tv-fb.tv-no { background: rgba(20, 8, 12, 0.96); border-color: #3a1522; color: #ff6b7a; }
+  .tv-fb small { display: block; color: var(--text-muted); font-weight: 400; margin-top: 4px; font-family: 'Barlow Condensed', sans-serif; font-size: 0.8rem; letter-spacing: 0.04em; }
+  .tv-score { text-align: center; }
+  .tv-pct { font-family: 'Barlow Condensed', sans-serif; font-size: 4rem; font-weight: 700; color: var(--gold); line-height: 1.1; }
+  .tv-big { font-family: 'Barlow Condensed', sans-serif; font-size: 1.2rem; letter-spacing: 0.04em; margin: 4px 0; }
+  .tv-rev { border-top: 1px solid var(--border); padding: 10px 0; font-size: 0.9rem; color: #c0c8dd; }
+  .tv-rev:first-child { border-top: none; padding-top: 0; }
+  .tv-rev b.tv-ok { color: #4caf8b; }
+  .tv-rev b.tv-no { color: #ff6b7a; }
+  .tv-rev .tv-mu { color: var(--text-muted); font-family: 'Barlow Condensed', sans-serif; font-size: 0.8rem; letter-spacing: 0.04em; margin-top: 2px; }
+
+  @media (max-width: 500px) {
+    .tv-page { padding: 24px 16px 48px; }
+    .tv-card { padding: 16px; }
+    .tv-pct { font-size: 3rem; }
+    .nav-tabs { padding: 0 4px; overflow-x: auto; }
+    .nav-tab { padding: 18px 10px; }
+    .tracker-header { padding: 12px 16px; }
+    main { padding: 24px 16px 48px; }
+    .search-page { padding: 24px 16px 48px; }
+    .pct { font-size: 1.3rem; }
+    .logo { font-size: 1.2rem; padding: 14px 16px; }
+    .item-detail { padding-left: 16px; }
+  }
+
+  [hidden]{display:none!important}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  button.custom-checkbox,button.expand-btn{appearance:none;padding:0;font:inherit;cursor:pointer}
+  .nav-tab{background:none;border:0;border-bottom:2px solid transparent}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .tools,#next-up,.backup,.tk-empty{max-width:760px;margin:0 auto;padding:10px 24px}
+  .fchips{display:flex;flex-wrap:wrap;gap:8px}
+  .fchip{font:600 .78rem 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:6px 14px;cursor:pointer}
+  .fchip:hover{color:var(--text);border-color:var(--red)}
+  .fchip[aria-pressed=true]{background:var(--red-dim);border-color:var(--red);color:#fff}
+  .legend{font-size:.78rem;color:var(--text-muted);margin:8px 0}
+  .next-up{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:6px;padding:10px 14px}
+  .next-label{font:700 .75rem 'Barlow Condensed',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--red)}
+  .next-meta,.ai-note{font-size:.75rem;color:var(--text-muted)}
+  .ai-note{margin-top:8px}
+  .phase-prog{margin-left:10px;font-size:.8em;color:var(--text-muted)}
+  .phase-mark{margin:0 10px;font:600 .7rem 'Barlow Condensed',sans-serif;letter-spacing:.08em;text-transform:uppercase;background:none;color:var(--text-muted);border:1px solid var(--border);border-radius:10px;padding:2px 8px;cursor:pointer}
+  .phase-mark:hover{color:var(--text);border-color:var(--red)}
+  .tk-empty{text-align:center;color:var(--text-muted)}
+  .backup summary{cursor:pointer;color:var(--text-muted);font-size:.85rem}
+  .backup textarea{width:100%;margin:8px 0;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font:.8rem monospace}
+  .ai-badge{color:var(--text-muted)}
+  .tv-ov{margin-left:8px;font-size:.75rem;background:none;color:var(--gold);border:1px solid var(--gold);border-radius:10px;padding:1px 8px;cursor:pointer}
+  @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+  @media (prefers-color-scheme: light){
+    :root{--bg:#f5f6fa;--surface:#fff;--surface2:#e6e9f2;--text:#161a2b;--text-muted:#566082;--border:#d3d8e6;--checked-bg:#e6f4e7;--checked-border:#7fbf85;--expand-bg:#eef1f8;--red:#c4141c;--red-dim:#a3141b;--gold:#8a6a10}
+    nav,.tracker-header{background:rgba(245,246,250,.97)}
+    .item.checked .item-meta,.item.checked .item-title{color:var(--text-muted)}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="logo">MARVEL<span> TRACKER</span></div>
+    <div class="nav-tabs" role="tablist">
+      <button class="nav-tab active" role="tab" aria-selected="true" data-page="tracker">Watch List</button>
+      <button class="nav-tab" role="tab" aria-selected="false" data-page="search">Search</button>
+      <button class="nav-tab" role="tab" aria-selected="false" data-page="trivia">Trivia</button>
+    </div>
+  </div>
+</nav>
+
+<!-- TRACKER PAGE -->
+<div class="page active" id="page-tracker">
+  <div class="tracker-header">
+    <div class="header-inner">
+      <div class="progress-block">
+        <div class="progress-stats">
+          <span><strong id="seen-count">0</strong> of <strong id="total-count">0</strong> watched</span>
+        </div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar"></div></div>
+      </div>
+      <div class="pct" id="pct-text">0%</div>
+    </div>
+    <div class="header-inner">
+      <div class="toggle-wrap">
+        <label class="toggle-switch">
+          <input type="checkbox" id="show-optional" checked>
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+        <span class="toggle-label" id="toggle-label">Showing optional items</span>
+      </div>
+    </div>
+  </div>
+  <div class="tools">
+  <div class="fchips" role="group" aria-label="Filter watch list">
+    <button class="fchip" data-f="all" aria-pressed="true">All</button><button class="fchip" data-f="unwatched" aria-pressed="false">Unwatched</button><button class="fchip" data-f="essential" aria-pressed="false">Essentials</button><button class="fchip" data-f="movie" aria-pressed="false">Movies</button><button class="fchip" data-f="tv" aria-pressed="false">TV</button>
+  </div>
+  <p class="legend">&#9733; = essential viewing &middot; "Upcoming" = release year is still ahead</p>
+</div>
+<div id="next-up"></div>
+<main id="list"></main>
+<div id="empty" class="tk-empty" hidden>Nothing matches this filter.</div>
+<details class="backup"><summary>Backup, restore &amp; reset</summary>
+  <p class="legend">Progress is stored in this browser only. Export a copy to keep it or move devices.</p>
+  <textarea id="bk-text" rows="4" aria-label="Progress backup"></textarea>
+  <div class="fchips"><button class="fchip" id="bk-export">Export</button><button class="fchip" id="bk-import">Import</button><button class="fchip" id="bk-reset">Reset progress</button></div>
+  <p class="legend" id="bk-msg" aria-live="polite"></p>
+</details>
+</div>
+
+<!-- SEARCH PAGE -->
+<div class="page" id="page-search">
+  <div class="search-page">
+    <div class="search-hero">
+      <h1>Ask anything about Marvel</h1>
+      <p>Answers from trained knowledge · spoilers hidden by default</p>
+    </div>
+    <div class="search-input-wrap">
+      <input class="search-input" id="search-input" aria-label="Ask a question about Marvel" type="text" placeholder="e.g. Who is Kang? What happens at the end of Endgame?" autocomplete="off">
+      <button class="search-btn" id="search-btn">Ask</button>
+    </div>
+    <div class="search-suggestions">
+      <div class="chip" data-q="What is the significance of the Infinity Stones?">Infinity Stones</div>
+      <div class="chip" data-q="Who are the original six Avengers?">Original Avengers</div>
+      <div class="chip" data-q="What happens at the end of Avengers: Endgame?">Endgame ending</div>
+      <div class="chip" data-q="Who is Kang the Conqueror and why does he matter?">Who is Kang?</div>
+      <div class="chip" data-q="What is the multiverse in Marvel?">The Multiverse</div>
+      <div class="chip" data-q="What are the best post-credits scenes in the MCU?">Post-credits scenes</div>
+    </div>
+    <div class="result-box" id="result-box" aria-live="polite">
+      <div class="empty-state"><div class="empty-icon">🎬</div>Ask a question above to get started</div>
+    </div>
+  </div>
+</div>
+
+<!-- TRIVIA PAGE -->
+<div class="page" id="page-trivia">
+  <div class="tv-page">
+    <div class="tv-hero"><h1>Marvel Trivia</h1><p>Build your own quiz</p></div>
+
+    <section id="tv-setup">
+      <div class="tv-card"><h2>Franchise <button data-all="series">Select all</button></h2><div class="tv-chips" id="tv-series"></div></div>
+      <div class="tv-card"><h2>Type <button data-all="type">Select all</button></h2><div class="tv-chips" id="tv-type"></div></div>
+      <div class="tv-card"><h2>Difficulty <button data-all="diff">Select all</button></h2><div class="tv-chips" id="tv-diff"></div></div>
+      <div class="tv-card"><h2>Length (questions)</h2><div class="tv-chips" id="tv-len"></div></div>
+      <div class="tv-info" id="tv-avail"></div>
+      <button class="tv-btn" id="tv-start">Start Quiz</button>
+    </section>
+
+    <section id="tv-quiz" class="tv-hide">
+      <div class="tv-meta"><span id="tv-prog"></span><span id="tv-sc"></span></div>
+      <div class="tv-bar"><i id="tv-barfill"></i></div>
+      <div class="tv-card"><div class="tv-tags" id="tv-tags"></div><div class="tv-q" id="tv-qtext"></div>
+        <input type="text" class="tv-input" id="tv-ans" aria-label="Your answer" placeholder="Type your answer…" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div id="tv-fb" aria-live="polite"></div></div>
+      <button class="tv-btn" id="tv-submit">Submit</button>
+    </section>
+
+    <section id="tv-result" class="tv-hide">
+      <div class="tv-card tv-score"><div class="tv-info" style="margin:0">Your score</div><div class="tv-pct" id="tv-pct"></div><div class="tv-big" id="tv-fin"></div><div class="tv-info" id="tv-msg"></div><div class="tv-info" id="tv-stats"></div></div>
+      <button class="tv-btn" id="tv-again">Play again (new questions)</button><button class="tv-btn tv-alt" id="tv-settings">Change settings</button>
+      <div class="tv-card" style="margin-top:14px"><h2>Review</h2><div id="tv-review"></div></div>
+    </section>
+  </div>
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const escHTML = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ITEMS = [
+  { phase:"Phase 1 — The Infinity Saga", id:"im1", title:"Iron Man", year:2008, type:"movie", essential:true },
+  { id:"ih", title:"The Incredible Hulk", year:2008, type:"movie" },
+  { id:"im2", title:"Iron Man 2", year:2010, type:"movie" },
+  { id:"thor1", title:"Thor", year:2011, type:"movie", essential:true },
+  { id:"cap1", title:"Captain America: The First Avenger", year:2011, type:"movie", essential:true },
+  { id:"avengers1", title:"The Avengers", year:2012, type:"movie", essential:true },
+  { phase:"Phase 2 — The Infinity Saga", id:"im3", title:"Iron Man 3", year:2013, type:"movie" },
+  { id:"thor2", title:"Thor: The Dark World", year:2013, type:"movie" },
+  { id:"cap2", title:"Captain America: The Winter Soldier", year:2014, type:"movie", essential:true },
+  { id:"gotg1", title:"Guardians of the Galaxy", year:2014, type:"movie", essential:true },
+  { id:"ultron", title:"Avengers: Age of Ultron", year:2015, type:"movie", essential:true },
+  { id:"antman1", title:"Ant-Man", year:2015, type:"movie" },
+  { phase:"Phase 3 — The Infinity Saga", id:"cw", title:"Captain America: Civil War", year:2016, type:"movie", essential:true },
+  { id:"bpanther1", title:"Black Panther", year:2018, type:"movie", essential:true },
+  { id:"spidey1", title:"Spider-Man: Homecoming", year:2017, type:"movie" },
+  { id:"drstrange1", title:"Doctor Strange", year:2016, type:"movie", essential:true },
+  { id:"gotg2", title:"Guardians of the Galaxy Vol. 2", year:2017, type:"movie" },
+  { id:"thor3", title:"Thor: Ragnarok", year:2017, type:"movie", essential:true },
+  { id:"aw", title:"Avengers: Infinity War", year:2018, type:"movie", essential:true },
+  { id:"antman2", title:"Ant-Man and the Wasp", year:2018, type:"movie" },
+  { id:"camarvel", title:"Captain Marvel", year:2019, type:"movie", essential:true },
+  { id:"endgame", title:"Avengers: Endgame", year:2019, type:"movie", essential:true },
+  { id:"spidey2", title:"Spider-Man: Far From Home", year:2019, type:"movie" },
+  { phase:"Phase 4 — The Multiverse Saga", id:"wandavision", title:"WandaVision", year:2021, type:"tv", note:"Disney+", essential:true },
+  { id:"fatws", title:"The Falcon and the Winter Soldier", year:2021, type:"tv", note:"Disney+" },
+  { id:"loki1", title:"Loki — Season 1", year:2021, type:"tv", note:"Disney+", essential:true },
+  { id:"bw", title:"Black Widow", year:2021, type:"movie" },
+  { id:"shang", title:"Shang-Chi and the Legend of the Ten Rings", year:2021, type:"movie" },
+  { id:"whatif1", title:"What If…? — Season 1", year:2021, type:"tv", note:"Disney+ animated", optional:true },
+  { id:"eternals", title:"Eternals", year:2021, type:"movie", optional:true },
+  { id:"hawkeye", title:"Hawkeye", year:2021, type:"tv", note:"Disney+" },
+  { id:"drstrange2", title:"Doctor Strange in the Multiverse of Madness", year:2022, type:"movie", essential:true },
+  { id:"moonknight", title:"Moon Knight", year:2022, type:"tv", note:"Disney+" },
+  { id:"ms_marvel", title:"Ms. Marvel", year:2022, type:"tv", note:"Disney+", optional:true },
+  { id:"thor4", title:"Thor: Love and Thunder", year:2022, type:"movie" },
+  { id:"she_hulk", title:"She-Hulk: Attorney at Law", year:2022, type:"tv", note:"Disney+", optional:true },
+  { id:"werewolf", title:"Werewolf by Night", year:2022, type:"special", note:"Disney+ special", optional:true },
+  { id:"bpanther2", title:"Black Panther: Wakanda Forever", year:2022, type:"movie", essential:true },
+  { id:"guardiansholiday", title:"The Guardians of the Galaxy Holiday Special", year:2022, type:"special", note:"Disney+ special", optional:true },
+  { id:"antman3", title:"Ant-Man and the Wasp: Quantumania", year:2023, type:"movie" },
+  { phase:"Phase 5 — The Multiverse Saga", id:"gotg3", title:"Guardians of the Galaxy Vol. 3", year:2023, type:"movie", essential:true },
+  { id:"secret_invasion", title:"Secret Invasion", year:2023, type:"tv", note:"Disney+", optional:true },
+  { id:"loki2", title:"Loki — Season 2", year:2023, type:"tv", note:"Disney+", essential:true },
+  { id:"whatif2", title:"What If…? — Season 2", year:2023, type:"tv", note:"Disney+ animated", optional:true },
+  { id:"echo", title:"Echo", year:2024, type:"tv", note:"Disney+", optional:true },
+  { id:"ironheart", title:"Ironheart", year:2025, type:"tv", note:"Disney+", optional:true },
+  { id:"agatha", title:"Agatha All Along", year:2024, type:"tv", note:"Disney+", optional:true },
+  { id:"spidey3", title:"Spider-Man: No Way Home", year:2021, type:"movie", note:"Best after Loki S1 & Multiverse setup", essential:true },
+  { id:"daredevil", title:"Daredevil: Born Again", year:2025, type:"tv", note:"Disney+" },
+  { id:"wonderman", title:"Wonder Man", year:2025, type:"tv", note:"Disney+", optional:true },
+  { phase:"Phase 6 — The Multiverse Saga", id:"thunderbolts", title:"Thunderbolts*", year:2025, type:"movie", essential:true },
+  { id:"ff", title:"The Fantastic Four: First Steps", year:2025, type:"movie", essential:true },
+  { id:"spidey4", title:"Spider-Man: Brand New Day", year:2026, type:"movie", essential:true },
+  { id:"avengers5", title:"Avengers: Doomsday", year:2026, type:"movie", essential:true },
+  { id:"visionquest", title:"VisionQuest", year:2026, type:"tv", note:"Disney+" },
+  { id:"avengers6", title:"Avengers: Secret Wars", year:2027, type:"movie", essential:true },
+  { divider:true },
+  { phase:"X-Men — Watch Order", xmen:true, id:"xfc", title:"X-Men: First Class", year:2011, type:"movie", note:"Set in the 1960s", optional:true },
+  { id:"xow", title:"X-Men Origins: Wolverine", year:2009, type:"movie", note:"Set in the 1970s–80s", optional:true },
+  { id:"xm1", title:"X-Men", year:2000, type:"movie", note:"Set in the 2000s" },
+  { id:"xm2", title:"X2: X-Men United", year:2003, type:"movie" },
+  { id:"xm3", title:"X-Men: The Last Stand", year:2006, type:"movie" },
+  { id:"xwolv", title:"The Wolverine", year:2013, type:"movie", note:"After The Last Stand", optional:true },
+  { id:"xdofp", title:"X-Men: Days of Future Past", year:2014, type:"movie" },
+  { id:"xapoc", title:"X-Men: Apocalypse", year:2016, type:"movie", note:"Set in the 1980s", optional:true },
+  { id:"dp1", title:"Deadpool", year:2016, type:"movie" },
+  { id:"xdk", title:"Dark Phoenix", year:2019, type:"movie", note:"Set in the 1990s", optional:true },
+  { id:"dp2", title:"Deadpool 2", year:2018, type:"movie" },
+  { id:"logan", title:"Logan", year:2017, type:"movie", note:"Set in 2029" },
+  { id:"nm", title:"The New Mutants", year:2020, type:"movie", optional:true },
+  { id:"dpw", title:"Deadpool & Wolverine", year:2024, type:"movie", note:"Bridges Fox universe into MCU" },
+];
+const items = ITEMS.filter(i => !i.skip);
+
+// ─── STORAGE ─────────────────────────────────────────────────────────────────
+function getStored() { try { const r = localStorage.getItem('marvel_seen'); return r ? JSON.parse(r) : {}; } catch { return {}; } }
+function setStored(o) { try { localStorage.setItem('marvel_seen', JSON.stringify(o)); } catch {} }
+let seen = getStored();
+let showOptional = true;
+let detailCache = {}; try { detailCache = JSON.parse(localStorage.getItem('marvel_detail') || '{}'); } catch {}
+const saveCache = () => { try { localStorage.setItem('marvel_detail', JSON.stringify(detailCache)); } catch {} };
+
+// ─── sample capability ────────────────────────────────────────────────────────
+let sampleFn = null;
+async function getSample() {
+  if (sampleFn) return sampleFn;
+  const s = await claude.use('sample');
+  sampleFn = s;
+  return s;
+}
+
+// ─── STATS ───────────────────────────────────────────────────────────────────
+function updateStats() {
+  const filtered = items.filter(i => i.id && (showOptional || !i.optional));
+  const total = filtered.length;
+  const count = filtered.filter(i => seen[i.id]).length;
+  const pct = total ? Math.round(count/total*100) : 0;
+  document.getElementById('total-count').textContent = total;
+  document.getElementById('seen-count').textContent = count;
+  document.getElementById('pct-text').textContent = pct + '%';
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+function badgeHTML(t) {
+  if (t==='movie') return '<span class="badge badge-movie">Film</span>';
+  if (t==='tv') return '<span class="badge badge-tv">Series</span>';
+  if (t==='special') return '<span class="badge badge-special">Special</span>';
+  return '';
+}
+
+// ─── RENDER LIST ─────────────────────────────────────────────────────────────
+const NOW = new Date().getFullYear(), open = new Set();
+let filter = 'all';
+const visible = it => (showOptional || !it.optional) && !(filter==='unwatched' && seen[it.id]) && !(filter==='essential' && !it.essential) && !(filter==='movie' && it.type!=='movie') && !(filter==='tv' && it.type!=='tv');
+function groups() { const g = []; let cur = null, div = false; items.forEach(it => { if (it.divider) { div = true; return; } if (it.phase) { cur = {name: it.phase, xmen: !!it.xmen, div, list: []}; div = false; g.push(cur); } if (it.id && cur) cur.list.push(it); }); return g; }
+function renderNext() { const n = items.find(i => i.id && i.essential && !seen[i.id]); document.getElementById('next-up').innerHTML = n ? `<div class="next-up"><span class="next-label">Next up</span><strong>${escHTML(n.title)}</strong><span class="next-meta">${n.year||''}${n.year>NOW?' · Upcoming':''}</span><button class="fchip" data-next="${n.id}">Mark watched</button></div>` : '<div class="next-up">All essential titles watched. 🎉</div>'; }
+function render(focusSel) {
+  let html = '', shown = 0;
+  groups().forEach((g, gi) => {
+    const rows = g.list.filter(visible); if (!rows.length) return;
+    const all = g.list.filter(i => showOptional || !i.optional), done = all.filter(i => seen[i.id]).length;
+    if (g.div) html += '<hr class="universe-divider">';
+    html += `<div class="phase-label${g.xmen?' xmen':''}">${g.name}<span class="phase-prog">${done}/${all.length}</span><button class="phase-mark" data-phase="${gi}">${done===all.length?'Unmark all':'Mark all'}</button></div>`;
+    rows.forEach(item => {
+      shown++;
+      const checked = !!seen[item.id], t = escHTML(item.title), meta = [item.year, item.note].filter(Boolean).join(' · ');
+      html += `<div class="item-wrap" id="wrap-${item.id}"><div class="item${checked?' checked':''}" data-id="${item.id}" data-optional="${item.optional?'true':'false'}"><button class="custom-checkbox" role="checkbox" aria-checked="${checked}" aria-label="Watched: ${t}"><svg class="checkmark" viewBox="0 0 11 8"><polyline points="1,4 4,7 10,1"/></svg></button><div class="item-info"><div class="item-title">${t}${item.essential?'<span class="essential-star" title="Essential" aria-label="Essential"> ★</span>':''}</div>${meta?`<div class="item-meta">${escHTML(meta)}</div>`:''}</div><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0">${badgeHTML(item.type)}${item.optional?'<span class="badge badge-optional">Optional</span>':''}${item.year>NOW?'<span class="badge badge-optional">Upcoming</span>':''}</div><button class="expand-btn" data-expand="${item.id}" aria-expanded="false" aria-label="Details: ${t}">▾</button></div><div class="item-detail" id="detail-${item.id}" aria-live="polite"></div></div>`;
+    });
+  });
+  listEl.innerHTML = html;
+  document.getElementById('empty').hidden = shown > 0;
+  open.forEach(id => { const w = document.getElementById('wrap-'+id); if (!w) return; w.classList.add('expanded'); w.querySelector('.expand-btn').setAttribute('aria-expanded','true'); if (detailCache[id]) renderDetail(document.getElementById('detail-'+id), detailCache[id]); });
+  renderNext(); updateStats();
+  if (focusSel) { const f = document.querySelector(focusSel); if (f) f.focus(); }
+}
+const listEl = document.getElementById('list');
+function toggle(id) { seen[id] = !seen[id]; if (!seen[id]) delete seen[id]; setStored(seen); render('.item[data-id="'+id+'"] .custom-checkbox'); }
+async function expand(btn) {
+  const id = btn.dataset.expand, wrap = document.getElementById('wrap-'+id), det = document.getElementById('detail-'+id);
+  if (!wrap.classList.toggle('expanded')) { open.delete(id); btn.setAttribute('aria-expanded','false'); return; }
+  open.add(id); btn.setAttribute('aria-expanded','true');
+  if (detailCache[id]) { renderDetail(det, detailCache[id]); return; }
+  det.innerHTML = '<div class="loading-row"><div class="spin"></div> Fetching info…</div>';
+  const item = items.find(i => i.id===id);
+  try {
+    const s = await getSample(); if (!s) throw new Error('no sample');
+    const res = await s.json(`Marvel expert. For "${item.title}" (${item.year||'upcoming'}), reply ONLY as JSON with keys: blurb (2-sentence spoiler-free premise), cast (array of 3 objects {actor,character}). No markdown.`);
+    detailCache[id] = res; saveCache();
+    renderDetail(document.getElementById('detail-'+id), res);
+  } catch { const d = document.getElementById('detail-'+id); if (d) d.innerHTML = '<div class="loading-row" style="color:#ff6b7a">Could not load details. Collapse and try again.</div>'; }
+}
+listEl.addEventListener('click', e => {
+  const ex = e.target.closest('.expand-btn'); if (ex) { expand(ex); return; }
+  const pm = e.target.closest('.phase-mark');
+  if (pm) { const all = groups()[+pm.dataset.phase].list.filter(i => showOptional || !i.optional), every = all.every(i => seen[i.id]); all.forEach(i => { if (every) delete seen[i.id]; else seen[i.id] = true; }); setStored(seen); render(); return; }
+  const it = e.target.closest('.item'); if (it) toggle(it.dataset.id);
+});
+document.getElementById('next-up').addEventListener('click', e => { const b = e.target.closest('[data-next]'); if (b) toggle(b.dataset.next); });
+document.querySelector('.tools').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b) return; filter = b.dataset.f; document.querySelectorAll('.tools [data-f]').forEach(x => x.setAttribute('aria-pressed', x===b)); render(); });
+function renderDetail(el, info) {
+  const cast = (Array.isArray(info.cast) ? info.cast : []).map(c => `${escHTML(c.actor)} <span style="color:var(--text-muted)">as</span> ${escHTML(c.character)}`).join(' &nbsp;·&nbsp; ');
+  el.innerHTML = `<div class="detail-blurb">${escHTML(info.blurb)}</div><div class="detail-row"><div class="detail-cast"><span class="cast-names">${cast}</span></div></div><div class="ai-note">AI-generated summary; may contain errors.</div>`;
+}
+render();
+document.getElementById('show-optional').addEventListener('change', function() {
+  showOptional = this.checked;
+  document.getElementById('toggle-label').textContent = showOptional ? 'Showing optional items' : 'Hiding optional items';
+  render();
+});
+const bk = id => document.getElementById(id), say = m => { bk('bk-msg').textContent = m; };
+bk('bk-export').onclick = async () => { const t = JSON.stringify({version: 1, seen}); bk('bk-text').value = t; try { const d = await claude.use('downloads'); if (d) { await d.save({filename: 'marvel-progress.json', data: t}); say('Backup saved. A copy is also in the box.'); return; } } catch {} say('Copy the text in the box to keep your backup.'); };
+bk('bk-import').onclick = () => { try { const o = JSON.parse(bk('bk-text').value).seen || {}, ids = new Set(items.map(i => i.id)); let n = 0; Object.keys(o).forEach(k => { if (ids.has(k) && o[k]) { seen[k] = true; n++; } }); setStored(seen); render(); say('Imported ' + n + ' watched titles.'); } catch { say('That backup could not be read.'); } };
+let rt; bk('bk-reset').onclick = function() { if (!this.dataset.arm) { this.dataset.arm = 1; this.textContent = 'Click again to confirm'; rt = setTimeout(() => { delete this.dataset.arm; this.textContent = 'Reset progress'; }, 4000); return; } clearTimeout(rt); delete this.dataset.arm; this.textContent = 'Reset progress'; seen = {}; setStored(seen); render(); say('Progress reset.'); };
+
+// ─── NAV ─────────────────────────────────────────────────────────────────────
+const tabs = [...document.querySelectorAll('.nav-tab')];
+function go(p) { if (!document.getElementById('page-'+p)) p = 'tracker'; tabs.forEach(t => { const on = t.dataset.page === p; t.classList.toggle('active', on); t.setAttribute('aria-selected', on); }); document.querySelectorAll('.page').forEach(x => x.classList.toggle('active', x.id === 'page-'+p)); }
+tabs.forEach(t => t.addEventListener('click', () => { go(t.dataset.page); try { location.hash = t.dataset.page; } catch {} }));
+window.addEventListener('hashchange', () => go(location.hash.slice(1)));
+try { go(location.hash.slice(1)); } catch {}
+
+// ─── SEARCH ──────────────────────────────────────────────────────────────────
+document.querySelectorAll('.chip').forEach(c => {
+  c.addEventListener('click', () => { document.getElementById('search-input').value = c.dataset.q; doSearch(); });
+});
+document.getElementById('search-btn').addEventListener('click', doSearch);
+document.getElementById('search-input').addEventListener('keydown', e => { if (e.key==='Enter') doSearch(); });
+
+async function doSearch() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  const btn = document.getElementById('search-btn');
+  const box = document.getElementById('result-box');
+  btn.disabled = true; btn.textContent = '…';
+
+  // Show streaming skeleton
+  box.innerHTML = `
+    <div class="result-meta"><span>Re: ${escHTML(q.length>60?q.slice(0,60)+'…':q)}</span></div>
+    <div class="result-body" id="stream-body"><div class="loading-row"><div class="spin"></div> Thinking…</div></div>`;
+
+  try {
+    const s = await getSample();
+    if (!s) throw new Error('unavailable');
+
+    const systemMsg = `You are a Marvel encyclopedia. Answer questions about Marvel movies/TV using official knowledge.
+Separate your answer into JSON with these exact keys:
+- "answer": spoiler-free explanation (2-3 paragraphs, plain text, use newlines between paragraphs)
+- "spoilers": plot reveals, deaths, twists, endings, post-credits scenes — or null if none apply
+
+ONLY reply with valid JSON. No markdown. No preamble.`;
+
+    let accumulated = '';
+    const bodyEl = document.getElementById('stream-body');
+
+    const res = await s.json(
+      [{role:'user', content: systemMsg + '\n\nQuestion: ' + q}],
+      {
+        onText: ({text}) => {
+          accumulated = text;
+          // Show streaming progress
+          
+        }
+      }
+    );
+
+    renderSearchResult(box, res, q);
+  } catch(err) {
+    box.innerHTML = `<div class="loading-row" style="color:#ff6b7a;padding:8px 0">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Something went wrong — please try again.
+    </div>`;
+  }
+  btn.disabled = false; btn.textContent = 'Ask';
+}
+
+function renderSearchResult(box, res, q) {
+  const answerParas = String(res.answer||'').split('\n').filter(Boolean).map(p=>`<p>${escHTML(p)}</p>`).join('');
+  let spoilerHTML = '';
+  if (res.spoilers) {
+    const sp = String(res.spoilers).split('\n').filter(Boolean).map(p=>`<p>${escHTML(p)}</p>`).join('');
+    spoilerHTML = `
+      <div class="spoiler-section">
+        <div class="spoiler-divider">Spoilers</div>
+        <div class="spoiler-container">
+          <div class="spoiler-content">${sp}</div>
+          <div class="spoiler-blur" id="spoiler-overlay" role="button" tabindex="0">
+            <div class="spoiler-blur-label">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+              Spoilers hidden — tap to reveal
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+    box.innerHTML = `
+    <div class="result-meta">
+      <span>Re: ${escHTML(q.length>60?q.slice(0,60)+'…':q)}</span>
+      <span class="ai-badge">AI-generated · may contain errors</span>
+    </div>
+    <div class="result-body">${answerParas}</div>
+    ${spoilerHTML}
+    `;
+
+  const overlay = document.getElementById('spoiler-overlay');
+  if (overlay) { const rv = () => overlay.classList.add('gone'); overlay.addEventListener('click', rv); overlay.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); rv(); } }); }
+}
+</script>
+<script>/* Marvel Trivia answer checker - typo & long-answer tolerant.
+   Usage: checkAnswer(userInput, questionObject) -> true / false  */
+(function (root) {
+  function normalize(s) {
+    s = String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    s = s.replace(/&/g, ' and ').replace(/['’`]/g, '').replace(/[^a-z0-9 ]+/g, ' ');
+    s = s.replace(/\s+/g, ' ').trim();
+    return s.replace(/^(the|a|an|its|it is|it was|he is|she is|hes|shes|is|its a)\s+/, '').trim();
+  }
+  function lev(a, b) {
+    if (a === b) return 0;
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i];
+      for (let j = 1; j <= b.length; j++)
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] !== b[j - 1] ? 1 : 0));
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  const tol = n => (n <= 3 ? 0 : n <= 7 ? 1 : n <= 14 ? 2 : 3);  // allowed typos by length
+  function fuzzyEq(a, b) { return lev(a, b) <= tol(Math.min(a.length, b.length) || 0) ; }
+  function hasPhrase(userTokens, userStr, phrase) {            // phrase/word appears (fuzzily) in answer
+    if (!phrase) return false;
+    if (phrase.includes(' ')) {
+      if ((' ' + userStr + ' ').includes(' ' + phrase + ' ')) return true;
+      if (userStr.replace(/ /g, '') .includes(phrase.replace(/ /g, ''))) return true;
+      const pt = phrase.split(' ');
+      return pt.every(p => userTokens.some(t => fuzzyEq(t, p)));
+    }
+    return userTokens.some(t => fuzzyEq(t, phrase) || (phrase.length >= 5 && t.length >= 5 && t.startsWith(phrase.slice(0, phrase.length - 1)) ));
+  }
+  function checkAnswer(input, q) {
+    const u = normalize(input);
+    if (!u || !q || q.active === false) return false;
+    const ut = u.split(' ');
+    // 1) accepted answers: exact, fuzzy, or contained inside a longer reply
+    for (const raw of q.acceptedAnswers || []) {
+      const a = normalize(raw);
+      if (!a) continue;
+      if (u === a) return true;
+      if (u.replace(/ /g, '') === a.replace(/ /g, '')) return true;      // "star lord" vs "starlord"
+      if (lev(u, a) <= tol(a.length)) return true;                          // typos
+      if (a.length >= 3 && (' ' + u + ' ').includes(' ' + a + ' ')) return true; // "it's thor"
+      if (a.includes(' ') && a.split(' ').every(p => ut.some(t => fuzzyEq(t, p)))) return true;            // word order / extras
+    }
+    // 2) keyword groups for long answers: need N of M concepts present
+    const groups = q.keywordGroups;
+    if (groups && groups.length) {
+      let hit = 0;
+      for (const g of groups) if (g.some(k => hasPhrase(ut, u, k))) hit++;
+      if (hit >= (q.minKeywordGroups || groups.length)) return true;
+    }
+    return false;
+  }
+  root.normalizeAnswer = normalize; root.checkAnswer = checkAnswer;
+  if (typeof module !== 'undefined') module.exports = { checkAnswer, normalize };
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+// ─── TRIVIA ───
+(function(){
+
+const DB=[{"id":1,"question":"What is Captain America's real name?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Steve Rogers","acceptedAnswers":["Steve Rogers","Steven Grant Rogers","Rogers"]},{"id":2,"question":"What is Black Panther's real name?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"T'Challa","acceptedAnswers":["T'Challa"]},{"id":3,"question":"What is Star-Lord's real name?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Peter Quill","acceptedAnswers":["Peter Quill","Peter Jason Quill","Quill"]},{"id":4,"question":"What is Hawkeye's real name?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Clint Barton","acceptedAnswers":["Clint Barton","Clinton Francis Barton","Barton"]},{"id":5,"question":"What is Ant-Man's real name?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Scott Lang","acceptedAnswers":["Scott Lang","Hank Pym","Henry Pym","Lang","Pym"]},{"id":6,"question":"What is Spider-Man's real name?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Peter Parker","acceptedAnswers":["Peter Parker","Peter Benjamin Parker","Parker"]},{"id":7,"question":"What is Doctor Strange's first name?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Stephen","acceptedAnswers":["Stephen","Steven","Stephen Strange"]},{"id":8,"question":"What is Scarlet Witch's real name?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Wanda Maximoff","acceptedAnswers":["Wanda Maximoff","Wanda","Maximoff"]},{"id":9,"question":"What is Winter Soldier's real name?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Bucky Barnes","acceptedAnswers":["Bucky Barnes","James Buchanan Barnes","James Barnes","Bucky","James Bucky Barnes","Barnes"]},{"id":10,"question":"What is Falcon's real name?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Sam Wilson","acceptedAnswers":["Sam Wilson","Samuel Wilson","Samuel Thomas Wilson","Wilson"]},{"id":11,"question":"What is War Machine's real name?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"James Rhodes","acceptedAnswers":["James Rhodes","Rhodey","James Rupert Rhodes","Jim Rhodes"]},{"id":12,"question":"Which character says, \"I can do this all day\"?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Captain America","acceptedAnswers":["Captain America","Steve Rogers","Cap","Rogers"]},{"id":13,"question":"Who says \"Wakanda Forever!\"?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Black Panther","acceptedAnswers":["Black Panther","T'Challa","Wakandans","Everyone in Wakanda","Shuri","Okoye"]},{"id":14,"question":"Which character is associated with the phrase \"I am Iron Man\"?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Tony Stark","acceptedAnswers":["Tony Stark","Iron Man","Anthony Stark","Anthony Edward Stark","Stark"]},{"id":15,"question":"Who says \"We have a Hulk\"?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Tony Stark","acceptedAnswers":["Tony Stark","Iron Man","Anthony Stark","Stark"]},{"id":16,"question":"Which character frequently says \"Language!\"?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Captain America","acceptedAnswers":["Captain America","Steve Rogers","Cap","Rogers"]},{"id":17,"question":"How many Infinity Stones are there?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"6","acceptedAnswers":["6","six"]},{"id":18,"question":"What color is the Space Stone?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Blue","acceptedAnswers":["Blue"]},{"id":19,"question":"What color is the Mind Stone?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Yellow","acceptedAnswers":["Yellow"]},{"id":20,"question":"What color is the Reality Stone?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Red","acceptedAnswers":["Red"]},{"id":21,"question":"What color is the Power Stone?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Purple","acceptedAnswers":["Purple","Violet"]},{"id":22,"question":"What color is the Time Stone?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Green","acceptedAnswers":["Green"]},{"id":23,"question":"What color is the Soul Stone?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Orange","acceptedAnswers":["Orange"]},{"id":24,"question":"Which Infinity Stone is contained in the Tesseract?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Space Stone","acceptedAnswers":["Space Stone","The Space Stone","Space","Blue Stone"]},{"id":25,"question":"What is Thor's hammer called?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Mjolnir","acceptedAnswers":["Mjolnir"]},{"id":26,"question":"What is Thor's axe called?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Stormbreaker","acceptedAnswers":["Stormbreaker"]},{"id":27,"question":"What material is Captain America's shield primarily made from?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Vibranium","acceptedAnswers":["Vibranium"]},{"id":28,"question":"What fictional African nation is Black Panther from?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Wakanda","acceptedAnswers":["Wakanda"]},{"id":29,"question":"What is Thor's home realm called?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Asgard","acceptedAnswers":["Asgard"]},{"id":30,"question":"What is Star-Lord's real name?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Peter Quill","acceptedAnswers":["Peter Quill","Peter Jason Quill","Quill"]},{"id":31,"question":"What animal is Rocket?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Raccoon","acceptedAnswers":["Raccoon","A raccoon","Procyon lotor"]},{"id":32,"question":"What species is Groot?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Flora Colossus","acceptedAnswers":["Flora Colossus","Tree","Tree-like alien","Tree creature","Flora"]},{"id":33,"question":"What is Groot's most famous phrase?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"I am Groot","acceptedAnswers":["I am Groot","I'm Groot"]},{"id":34,"question":"What color is Gamora's skin?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Green","acceptedAnswers":["Green"]},{"id":35,"question":"Who is Gamora's sister?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Nebula","acceptedAnswers":["Nebula"]},{"id":36,"question":"Who is Thor's adoptive brother?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Loki","acceptedAnswers":["Loki","Loki Laufeyson","Loki Odinson"]},{"id":37,"question":"What is the name of Thor's father?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Odin","acceptedAnswers":["Odin","Odin Borson","Allfather"]},{"id":38,"question":"What is the Bifrost?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"The Rainbow Bridge","acceptedAnswers":["The Rainbow Bridge","Rainbow Bridge","Bridge between realms","Interdimensional bridge","Transport between realms"],"keywordGroups":[["bridge","teleport","portal","travel","transport"]],"minKeywordGroups":1},{"id":39,"question":"Who founded the Avengers Initiative?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Nick Fury","acceptedAnswers":["Nick Fury","Fury","Nicholas Fury","Nicholas Joseph Fury","SHIELD"]},{"id":40,"question":"Which Avenger uses a bow and arrow?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Hawkeye","acceptedAnswers":["Hawkeye","Clint Barton","Barton"]},{"id":41,"question":"Which Avenger carries a vibranium shield?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Captain America","acceptedAnswers":["Captain America","Steve Rogers","Cap","Rogers"]},{"id":42,"question":"Which Avenger is known as the God of Thunder?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Thor","acceptedAnswers":["Thor","Thor Odinson"]},{"id":43,"question":"Which Avenger is associated with Wakanda?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Black Panther","acceptedAnswers":["Black Panther","T'Challa"]},{"id":44,"question":"Which Avenger is known for using shrinking technology?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Ant-Man","acceptedAnswers":["Ant-Man","Scott Lang","Hank Pym","The Wasp","Wasp"]},{"id":45,"question":"Which Avenger transforms into a giant green superhero?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Hulk","acceptedAnswers":["Hulk","The Hulk","Bruce Banner","Banner","Incredible Hulk"]},{"id":46,"question":"What is the name of Tony Stark's AI assistant?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"J.A.R.V.I.S.","acceptedAnswers":["J.A.R.V.I.S","Jarvis","FRIDAY","F.R.I.D.A.Y","EDITH"]},{"id":47,"question":"What company is Tony Stark associated with?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Stark Industries","acceptedAnswers":["Stark Industries","Stark Industry","Stark Enterprises","Stark"]},{"id":48,"question":"What is the name of the Avengers' headquarters?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Avengers Compound","acceptedAnswers":["Avengers Compound","Avengers Tower","Avengers Facility","Avengers HQ","Stark Tower","Avengers Headquarters","Avengers Base"]},{"id":49,"question":"What is the name of the Guardians' spaceship?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Milano","acceptedAnswers":["Milano","The Milano","Benatar","The Benatar","Bowie","Ravager ship"]},{"id":50,"question":"What instrument does Star-Lord famously use?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Walkman","acceptedAnswers":["Walkman","Sony Walkman","Cassette player","Tape player","Mixtape","Awesome Mix","Awesome Mix Vol 1"]},{"id":51,"question":"What does S.H.I.E.L.D. stand for?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Strategic Homeland Intervention, Enforcement and Logistics Division","acceptedAnswers":["Strategic Homeland Intervention, Enforcement and Logistics Division","Strategic Homeland Intervention Enforcement Logistics Division"],"keywordGroups":[["strategic"],["homeland"],["intervention"],["enforcement"],["logistics"],["division"]],"minKeywordGroups":4},{"id":52,"question":"What does J.A.R.V.I.S. stand for?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Just A Rather Very Intelligent System","acceptedAnswers":["Just A Rather Very Intelligent System"],"keywordGroups":[["just"],["rather"],["very"],["intelligent"],["system"]],"minKeywordGroups":3},{"id":53,"question":"What does F.R.I.D.A.Y. refer to?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Female Replacement Intelligent Digital Assistant Youth","acceptedAnswers":["Female Replacement Intelligent Digital Assistant Youth","Tony Stark's AI","Stark's AI","AI assistant","Artificial intelligence"],"keywordGroups":[["female"],["replacement"],["intelligent"],["digital"],["assistant"],["youth"]],"minKeywordGroups":3},{"id":54,"question":"Which Infinity Stone is associated with the Aether?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Reality Stone","acceptedAnswers":["Reality Stone","Reality","The Reality Stone","Red Stone"]},{"id":55,"question":"Which Infinity Stone is associated with the Orb?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Power Stone","acceptedAnswers":["Power Stone","Power","The Power Stone","Purple Stone"]},{"id":56,"question":"Which Infinity Stone is associated with the Eye of Agamotto?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Time Stone","acceptedAnswers":["Time Stone","Time","The Time Stone","Green Stone"]},{"id":57,"question":"Which Infinity Stone is associated with Vision?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Mind Stone","acceptedAnswers":["Mind Stone","Mind","The Mind Stone","Yellow Stone"]},{"id":58,"question":"What is the name of the weapon used by Yondu?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Yaka Arrow","acceptedAnswers":["Yaka Arrow","Yaka","Yondu's arrow","Whistle Arrow","Arrow","Fin"]},{"id":59,"question":"What is the name of Drax's primary weapon?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Twin knives","acceptedAnswers":["Twin knives","Knives","Daggers","Dual knives","Twin daggers","Dual daggers","Knife","Dual blades","Twin blades","Blades"]},{"id":60,"question":"What is the name of Gamora's sword?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Godslayer","acceptedAnswers":["Godslayer","The Godslayer","Godslayer sword"]},{"id":61,"question":"What is the name of the Guardians' original spaceship?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Milano","acceptedAnswers":["Milano","The Milano"]},{"id":62,"question":"What is Knowhere?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"A space station inside the head of a Celestial","acceptedAnswers":["A space station inside the head of a Celestial","Celestial head","Head of a Celestial","Severed Celestial head","Mining colony","Space station","Celestial skull"],"keywordGroups":[["celestial","giant head","severed head","head of","skull"],["space station","station","colony","outpost","mining"]],"minKeywordGroups":1},{"id":63,"question":"What is the name of the prison in Guardians of the Galaxy?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"The Kyln","acceptedAnswers":["The Kyln","Kyln","Kiln"]},{"id":64,"question":"What is the name of the Nova Corps' homeworld?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Xandar","acceptedAnswers":["Xandar","Xandarian"]},{"id":65,"question":"What is Heimdall's primary ability?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Seeing everything in the universe","acceptedAnswers":["Seeing everything in the universe","He can see everything","Sees across the universe","Sees everything","Sight","Seeing","Omnivision"],"keywordGroups":[["see","sees","seeing","sight","vision","watch","watches","view","eyes"]],"minKeywordGroups":1},{"id":66,"question":"What is Valkyrie's real name?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Brunnhilde","acceptedAnswers":["Brunnhilde","Brynhild","Valkyrie Brunnhilde"]},{"id":67,"question":"What is the name of Thor's mother?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Frigga","acceptedAnswers":["Frigga","Queen Frigga"]},{"id":68,"question":"What is the name of the organization that trained Natasha Romanoff?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Red Room","acceptedAnswers":["Red Room","The Red Room"]},{"id":69,"question":"What is the designation of the Winter Soldier?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"The Asset","acceptedAnswers":["The Asset","Asset","Winter Soldier asset","Soldat","Sergeant Barnes"]},{"id":70,"question":"What is the name of the fictional element associated with Howard Stark?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Vibranium","acceptedAnswers":["Vibranium","Stark element","Howard Stark's element","New element"]},{"id":71,"question":"What project transformed Steve Rogers?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Project Rebirth","acceptedAnswers":["Project Rebirth","Super Soldier Serum","Super Soldier Program","Super Soldier Project","Super Soldier","Rebirth","Operation Rebirth"],"keywordGroups":[["rebirth"],["super soldier","supersoldier"]],"minKeywordGroups":1},{"id":72,"question":"What is the name of the technology that allows Ant-Man to change size?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Pym Particles","acceptedAnswers":["Pym Particles"]},{"id":73,"question":"What is the name of the device Ant-Man uses to communicate with ants?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Ant-Man helmet","acceptedAnswers":["Ant-Man helmet","Helmet","Cybernetic helmet","Ant Helmet","Ant communicator","Pym helmet","Cyborg ant helmet"],"keywordGroups":[["helmet","communicator","cybernetic","earpiece","headset","cyber"]],"minKeywordGroups":1},{"id":74,"question":"What profession did Stephen Strange have before becoming a sorcerer?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Neurosurgeon","acceptedAnswers":["Neurosurgeon","Surgeon","Brain surgeon","Doctor"]},{"id":75,"question":"What is the name of Strange's cloak?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Cloak of Levitation","acceptedAnswers":["Cloak of Levitation","The Cloak of Levitation","Levitation Cloak","Cloak"]},{"id":76,"question":"What are the three Sanctums located around the world?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"New York, London and Hong Kong","acceptedAnswers":["New York, London and Hong Kong","New York City London Hong Kong","NYC London Hong Kong"],"keywordGroups":[["new york","nyc","ny"],["london"],["hong kong","hongkong"]],"minKeywordGroups":3},{"id":77,"question":"What is the Mirror Dimension?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"A reflective dimension that lets sorcerers manipulate the real world","acceptedAnswers":["A reflective dimension that lets sorcerers manipulate the real world","Dimension","Mirror dimension","A mirror","Reflection of the real world","Parallel dimension"],"keywordGroups":[["dimension","realm","world","reality","plane"],["mirror","reflect","reflection","mirrors"]],"minKeywordGroups":1},{"id":78,"question":"What is the name of the magical artifact associated with Doctor Strange?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Eye of Agamotto","acceptedAnswers":["Eye of Agamotto","Agamotto","Time Stone","Cloak of Levitation","Sling Ring","Book of Cagliostro"]},{"id":79,"question":"What is Peter Quill's childhood nickname?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Star-Lord","acceptedAnswers":["Star-Lord","Half-Nut"]},{"id":80,"question":"What is the name of the device Nick Fury uses to contact Captain Marvel?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Pager","acceptedAnswers":["Pager","A pager","Fury's pager","Nick Fury's pager","Pager device","Beeper"]},{"id":81,"question":"Which Infinity Stone appears first in the MCU?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Space Stone","acceptedAnswers":["Space Stone","Tesseract","The Space Stone","The Tesseract"]},{"id":82,"question":"Which Infinity Stone appears in the greatest number of MCU films before Infinity War?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Space Stone","acceptedAnswers":["Space Stone","Tesseract","The Tesseract"]},{"id":83,"question":"What element does Tony Stark create to replace the palladium in his arc reactor?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Vibranium","acceptedAnswers":["Vibranium","Badassium","Starkium","Stark Element","New element","Unnamed element"]},{"id":84,"question":"What is the name of the computer system used by the Avengers to track threats?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"F.R.I.D.A.Y.","acceptedAnswers":["F.R.I.D.A.Y","Friday","JARVIS","Project Insight","Karen","EDITH"]},{"id":85,"question":"What is the name of the technology used to create the Vision?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Mind Stone","acceptedAnswers":["Mind Stone","The Mind Stone","Vibranium","Cradle","Regeneration Cradle","Jarvis","J.A.R.V.I.S"]},{"id":86,"question":"What is the name of the synthetic body being created in Avengers: Age of Ultron?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"The Cradle","acceptedAnswers":["The Cradle","Regeneration Cradle","Cradle","Vision","Vibranium cradle","Helen Cho's cradle"]},{"id":87,"question":"What is the name of the device used to open the portal in The Avengers?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"The Tesseract","acceptedAnswers":["The Tesseract","Tesseract","Space Stone","Cosmic Cube","Selvig's device","Erik Selvig's Tesseract machine","Cosmic energy device"]},{"id":89,"question":"What is the address of the Sanctum Sanctorum?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"177A Bleecker Street","acceptedAnswers":["177A Bleecker Street","177A Bleecker St","177a bleecker","Bleecker Street 177A"]},{"id":90,"question":"What is written on the back of Mjolnir?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Whosoever holds this hammer, if he be worthy, shall possess the power of Thor","acceptedAnswers":["Whosoever holds this hammer, if he be worthy, shall possess the power of Thor"],"keywordGroups":[["whosoever","whoever"],["holds","holds this","hold"],["hammer"],["worthy"],["power"],["thor"]],"minKeywordGroups":4},{"id":92,"question":"What model of Walkman does Peter Quill use?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Sony TPS-L2","acceptedAnswers":["Sony TPS-L2","TPS-L2","Sony Walkman TPS-L2"]},{"id":93,"question":"What is Rocket's identification number in the Kyln?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"89P13","acceptedAnswers":["89P13","89 P 13","Inmate 89P13","Prisoner 89P13"]},{"id":94,"question":"What is the name of the fictional company associated with Pym technology?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Pym Technologies","acceptedAnswers":["Pym Technologies","Pym Tech","Pym Technology","Pym Industries","Pym Tech Industries"]},{"id":95,"question":"What is the name of the restaurant where the Avengers eat shawarma?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Shawarma Palace","acceptedAnswers":["Shawarma Palace","Shawarma Restaurant","Shawarma"]},{"id":96,"question":"What song is playing during the opening sequence of Guardians of the Galaxy?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Come and Get Your Love","acceptedAnswers":["Come and Get Your Love","O-o-h Child","Ooh Child"]},{"id":97,"question":"Which AC/DC song is strongly associated with Iron Man?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Back in Black","acceptedAnswers":["Back in Black","Shoot to Thrill","Highway to Hell","Thunderstruck","Hells Bells"]},{"id":100,"question":"What is Shang-Chi's real name?","series":"Multiverse Saga","type":"Movie","difficulty":"Easy","answer":"Shang-Chi","acceptedAnswers":["Shang-Chi","Xu Shang-Chi","Shaun"]},{"id":101,"question":"What is Kamala Khan's superhero name?","series":"Multiverse Saga","type":"Movie","difficulty":"Easy","answer":"Ms. Marvel","acceptedAnswers":["Ms. Marvel"]},{"id":102,"question":"What is America Chavez's superpower?","series":"Multiverse Saga","type":"Movie","difficulty":"Easy","answer":"Creating star-shaped portals","acceptedAnswers":["Creating star-shaped portals","Portals","Opening portals","Portal creation","Star shaped portals","Travel between universes","Multiverse travel","Dimension hopping","Interdimensional travel"],"keywordGroups":[["portal","portals","teleport","universe","universes","multiverse","dimension","dimensional","travel"]],"minKeywordGroups":1},{"id":103,"question":"What is Doctor Strange's profession?","series":"Multiverse Saga","type":"Movie","difficulty":"Easy","answer":"Sorcerer Supreme","acceptedAnswers":["Sorcerer Supreme","Neurosurgeon","Surgeon","Master of the Mystic Arts","Sorcerer","Doctor"]},{"id":104,"question":"What is the name of the fictional country featured in Black Panther: Wakanda Forever?","series":"Multiverse Saga","type":"Movie","difficulty":"Easy","answer":"Talokan","acceptedAnswers":["Talokan","Wakanda"]},{"id":105,"question":"What is the name of the organization Wong leads?","series":"Multiverse Saga","type":"Movie","difficulty":"Easy","answer":"Kamar-Taj","acceptedAnswers":["Kamar-Taj","Masters of the Mystic Arts","Mystic Arts","Sorcerer Supreme","Sorcerers","Sanctums"]},{"id":106,"question":"What is the name of Wanda Maximoff's superhero identity?","series":"Multiverse Saga","type":"Movie","difficulty":"Easy","answer":"Scarlet Witch","acceptedAnswers":["Scarlet Witch","The Scarlet Witch"]},{"id":107,"question":"What is the name of the spellbook used by Wanda?","series":"Multiverse Saga","type":"Movie","difficulty":"Medium","answer":"The Darkhold","acceptedAnswers":["The Darkhold","Darkhold","Book of the Damned","Book of Sins","The Book of the Damned","Book of Chthon"]},{"id":110,"question":"What is the name of Kamala Khan's bangle?","series":"Multiverse Saga","type":"Movie","difficulty":"Medium","answer":"Nega-Band","acceptedAnswers":["Nega-Band","Nega-Bangle"]},{"id":111,"question":"What is the name of the organization associated with the Ten Rings?","series":"Multiverse Saga","type":"Movie","difficulty":"Medium","answer":"The Ten Rings","acceptedAnswers":["The Ten Rings","Ten Rings","10 Rings"]},{"id":112,"question":"What is the name of the organization associated with the Eternals?","series":"Multiverse Saga","type":"Movie","difficulty":"Medium","answer":"The Celestials","acceptedAnswers":["The Celestials","Celestials","Arishem","Arishem the Judge"]},{"id":113,"question":"What is the name of the celestial ship associated with the Eternals?","series":"Multiverse Saga","type":"Movie","difficulty":"Medium","answer":"Domo","acceptedAnswers":["Domo","The Domo","Dome","Domo ship"]},{"id":114,"question":"What is the name of the spellbook containing forbidden magical knowledge?","series":"Multiverse Saga","type":"Movie","difficulty":"Hard","answer":"The Darkhold","acceptedAnswers":["The Darkhold","Darkhold","Book of the Damned","Book of Sins"]},{"id":115,"question":"What is the name of the dimension associated with Dormammu?","series":"Multiverse Saga","type":"Movie","difficulty":"Hard","answer":"The Dark Dimension","acceptedAnswers":["The Dark Dimension","Dark Dimension"]},{"id":116,"question":"What is the name of the device used to manipulate the multiverse in Doctor Strange in the Multiverse of Madness?","series":"Multiverse Saga","type":"Movie","difficulty":"Hard","answer":"The Darkhold","acceptedAnswers":["The Darkhold","Darkhold","Book of Vishanti","Book of the Vishanti"]},{"id":117,"question":"What is the name of the alternate-universe organization featured in Doctor Strange in the Multiverse of Madness?","series":"Multiverse Saga","type":"Movie","difficulty":"Hard","answer":"The Illuminati","acceptedAnswers":["The Illuminati","Illuminati","Illuminati of Earth-838","Earth-838 Illuminati"]},{"id":118,"question":"What is the name of the universe designation associated with the main MCU reality?","series":"Multiverse Saga","type":"Movie","difficulty":"Hard","answer":"Earth-616","acceptedAnswers":["Earth-616","616","Earth-199999","199999","Sacred Timeline"]},{"id":119,"question":"What is the name of the artifact associated with the Ten Rings?","series":"Multiverse Saga","type":"Movie","difficulty":"Hard","answer":"The Ten Rings","acceptedAnswers":["The Ten Rings","Ten Rings","The rings","Rings","Bracelets","Ten Bracelets","10 Rings"]},{"id":121,"question":"What is WandaVision's fictional town called?","series":"Multiverse Saga","type":"TV Show","difficulty":"Easy","answer":"Westview","acceptedAnswers":["Westview","Westview New Jersey","Westview NJ"]},{"id":122,"question":"What is Loki's TVA?","series":"Multiverse Saga","type":"TV Show","difficulty":"Easy","answer":"Time Variance Authority","acceptedAnswers":["Time Variance Authority","TVA","Time Variance","Timeline authority"],"keywordGroups":[["time"],["variance","variant","variation"],["authority","agency"]],"minKeywordGroups":2},{"id":123,"question":"What is Loki's female variant called?","series":"Multiverse Saga","type":"TV Show","difficulty":"Easy","answer":"Sylvie","acceptedAnswers":["Sylvie","Sylvie Laufeydottir","Lady Loki","Sylvie Laufeyson"]},{"id":124,"question":"What is Kamala Khan's superhero name?","series":"Multiverse Saga","type":"TV Show","difficulty":"Easy","answer":"Ms. Marvel","acceptedAnswers":["Ms. Marvel"]},{"id":125,"question":"What is Moon Knight's civilian name?","series":"Multiverse Saga","type":"TV Show","difficulty":"Easy","answer":"Marc Spector","acceptedAnswers":["Marc Spector","Steven Grant","Marc","Moon Knight"]},{"id":126,"question":"What is Daredevil's civilian name?","series":"Multiverse Saga","type":"TV Show","difficulty":"Easy","answer":"Matt Murdock","acceptedAnswers":["Matt Murdock","Matthew Murdock","Matthew Michael Murdock","Murdock"]},{"id":127,"question":"What is She-Hulk's real name?","series":"Multiverse Saga","type":"TV Show","difficulty":"Easy","answer":"Jennifer Walters","acceptedAnswers":["Jennifer Walters","Jen Walters","Jennifer Susan Walters","Walters"]},{"id":128,"question":"What does TVA stand for?","series":"Multiverse Saga","type":"TV Show","difficulty":"Medium","answer":"Time Variance Authority","acceptedAnswers":["Time Variance Authority","TVA","Time Variance"],"keywordGroups":[["time"],["variance","variant","variation"],["authority"]],"minKeywordGroups":3},{"id":129,"question":"What are TVA field agents called?","series":"Multiverse Saga","type":"TV Show","difficulty":"Medium","answer":"Hunters","acceptedAnswers":["Hunters","TVA Hunters","Minutemen","Time Police","TVA Agents"],"keywordGroups":[["hunter","hunters","minuteman","minutemen","minute men"]],"minKeywordGroups":1},{"id":130,"question":"What is the name of the TVA's mascot?","series":"Multiverse Saga","type":"TV Show","difficulty":"Medium","answer":"Miss Minutes","acceptedAnswers":["Miss Minutes"]},{"id":131,"question":"What is the name of the device used by TVA agents to reset timelines?","series":"Multiverse Saga","type":"TV Show","difficulty":"Medium","answer":"Reset Charge","acceptedAnswers":["Reset Charge","Reset Rod","Reset Bomb","Reset device","Temporal Loom","Pruning stick"]},{"id":132,"question":"What is the name of the weapon used by TVA agents?","series":"Multiverse Saga","type":"TV Show","difficulty":"Medium","answer":"Time Baton","acceptedAnswers":["Time Baton","Stun Baton","Time Stick","Baton","Pruning Stick","Pruning Baton","TVA Baton","Stick"],"keywordGroups":[["baton","stick","rod"]],"minKeywordGroups":1},{"id":133,"question":"What is the name of Clint Barton's young protégé?","series":"Multiverse Saga","type":"TV Show","difficulty":"Medium","answer":"Kate Bishop","acceptedAnswers":["Kate Bishop","Kate","Bishop"]},{"id":134,"question":"What superhero identity does Jennifer Walters use?","series":"Multiverse Saga","type":"TV Show","difficulty":"Medium","answer":"She-Hulk","acceptedAnswers":["She-Hulk","Jennifer Walters"]},{"id":135,"question":"What profession does Matt Murdock have?","series":"Multiverse Saga","type":"TV Show","difficulty":"Medium","answer":"Lawyer","acceptedAnswers":["Lawyer","Attorney","Defense attorney","Defence lawyer"]},{"id":136,"question":"What organization is associated with Nick Fury in Secret Invasion?","series":"Multiverse Saga","type":"TV Show","difficulty":"Medium","answer":"S.A.B.E.R.","acceptedAnswers":["S.A.B.E.R","SABER","S.H.I.E.L.D","SHIELD","Skrulls","Sentient Weapon Observation and Response"]},{"id":137,"question":"What is the full name of the TVA?","series":"Multiverse Saga","type":"TV Show","difficulty":"Hard","answer":"Time Variance Authority","acceptedAnswers":["Time Variance Authority","TVA","Time Variance"],"keywordGroups":[["time"],["variance","variant"],["authority"]],"minKeywordGroups":3},{"id":139,"question":"What are the TVA's timeline-pruning devices called?","series":"Multiverse Saga","type":"TV Show","difficulty":"Hard","answer":"Pruning Sticks","acceptedAnswers":["Pruning Sticks","Prune sticks","Time Stick","Time Batons","Pruning Rod","Prune Rods","Batons"]},{"id":140,"question":"What type of animal is Miss Minutes?","series":"Multiverse Saga","type":"TV Show","difficulty":"Hard","answer":"Clock","acceptedAnswers":["Clock","A clock","Cartoon clock","Animated clock","Anthropomorphic clock","Talking clock","Cartoon Clock mascot"]},{"id":141,"question":"What is the name of the organization associated with the Flag Smashers?","series":"Multiverse Saga","type":"TV Show","difficulty":"Hard","answer":"Global Repatriation Council","acceptedAnswers":["Global Repatriation Council","GRC","Power Broker","Flag Smasher"]},{"id":142,"question":"What is the name of the fictional country central to Ms. Marvel's family history?","series":"Multiverse Saga","type":"TV Show","difficulty":"Hard","answer":"Pakistan","acceptedAnswers":["Pakistan","India","Karachi"]},{"id":143,"question":"What is the name of Moon Knight's Egyptian god associated with his powers?","series":"Multiverse Saga","type":"TV Show","difficulty":"Hard","answer":"Khonshu","acceptedAnswers":["Khonshu","Konsu","Konshou","Khonsu the Moon God"]},{"id":144,"question":"What is the name of the Egyptian goddess associated with Layla's superhero identity?","series":"Multiverse Saga","type":"TV Show","difficulty":"Hard","answer":"Taweret","acceptedAnswers":["Taweret","Tauret","Taweret goddess","Ammit"]},{"id":145,"question":"What is Wolverine's real name?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"James Howlett","acceptedAnswers":["James Howlett","Logan","James Logan","Logan Howlett","Howlett"]},{"id":146,"question":"What is Professor X's full name?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Charles Francis Xavier","acceptedAnswers":["Charles Francis Xavier","Charles Xavier","Professor X","Xavier","Charles"]},{"id":147,"question":"What is Magneto's real name?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Erik Lehnsherr","acceptedAnswers":["Erik Lehnsherr","Erik Magnus Lehnsherr","Max Eisenhardt","Magneto","Erik Eisenhardt","Lehnsherr"]},{"id":148,"question":"What is Beast's real name?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Hank McCoy","acceptedAnswers":["Hank McCoy","Henry McCoy","Henry Philip McCoy","McCoy","Dr. Hank McCoy"]},{"id":149,"question":"What is Mystique's real name?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Raven Darkholme","acceptedAnswers":["Raven Darkholme","Raven","Darkholme"]},{"id":150,"question":"What is Cyclops' real name?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Scott Summers","acceptedAnswers":["Scott Summers","Scott","Summers","Slim Summers"]},{"id":151,"question":"What is Storm's real name?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Ororo Munroe","acceptedAnswers":["Ororo Munroe","Ororo","Munroe","Ororo Iqadi T'Challa"]},{"id":152,"question":"What is Rogue's real name?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Anna Marie","acceptedAnswers":["Anna Marie","Marie","Marie D'Ancanto","Anna Marie D'Ancanto","Anna Marie Raven"]},{"id":153,"question":"What is Gambit's real name?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Remy LeBeau","acceptedAnswers":["Remy LeBeau","Remy Etienne LeBeau","Lebeau"]},{"id":154,"question":"What is Nightcrawler's real name?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Kurt Wagner","acceptedAnswers":["Kurt Wagner","Kurt","Wagner"]},{"id":155,"question":"What is Colossus' real name?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Piotr Rasputin","acceptedAnswers":["Piotr Rasputin","Peter Rasputin","Piotr Nikolaievitch Rasputin","Piotr","Rasputin","Piotr Rasputin Jr"]},{"id":156,"question":"What is Mystique's primary mutant ability?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Shapeshifting","acceptedAnswers":["Shapeshifting","Shapeshifter","Change her appearance","Mimicry","Metamorphosis","Shape shift","Changing shape","Transform into anyone"],"keywordGroups":[["shapeshift","shape shift","shapeshifting","shapeshifter","shape shifting","morph","change appearance","transform","metamorph"]],"minKeywordGroups":1},{"id":157,"question":"What powers does Storm possess?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Weather manipulation","acceptedAnswers":["Weather manipulation","Weather control","Control the weather","Controls weather","Weather","Manipulate the weather","Weather powers","Manipulates weather","Weather mastery"],"keywordGroups":[["weather","lightning","thunder","storm","climate","wind","rain"]],"minKeywordGroups":1},{"id":158,"question":"What powers does Cyclops possess?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Optic blasts","acceptedAnswers":["Optic blasts","Eye beams","Optical beams","Laser eyes","Eye lasers","Powerful energy beams from his eyes","Energy beams from eyes","Energy beams","Eye blasts","Lasers from eyes","Red beams","Energy blasts from eyes"],"keywordGroups":[["optic","optical","optics"],["beam","beams","blast","blasts","laser","lasers","eye"]],"minKeywordGroups":1},{"id":159,"question":"Which mutant can control metal?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Magneto","acceptedAnswers":["Magneto","Erik Lehnsherr","Mag","Magnus"]},{"id":160,"question":"Which mutant is known for having retractable claws?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Wolverine","acceptedAnswers":["Wolverine","Logan","James Howlett"]},{"id":161,"question":"What school does Professor X operate?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Xavier's School for Gifted Youngsters","acceptedAnswers":["Xavier's School for Gifted Youngsters","School for Gifted Youngsters","Xavier's School","Xavier Institute","Xavier Institute for Higher Learning","Professor Xavier's School","Xavier's School for the Gifted","Charles Xavier's School for Gifted Youngsters","Xavier mansion","Xaviers"],"keywordGroups":[["xavier","xaviers","gifted","youngsters","charles xavier"]],"minKeywordGroups":1},{"id":162,"question":"What metal is associated with Wolverine's skeleton?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Adamantium","acceptedAnswers":["Adamantium","Admantum"]},{"id":163,"question":"Which actor plays Wolverine?","series":"X-Men","type":"Movie","difficulty":"Easy","answer":"Hugh Jackman","acceptedAnswers":["Hugh Jackman","Jackman","Hugh Jakemann"]},{"id":164,"question":"What is Jean Grey's mutant ability?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"Telepathy and telekinesis","acceptedAnswers":["Telepathy and telekinesis","Telepathy","Telekinesis","Phoenix Force","Phoenix","Mind reading","Moving objects with her mind","Mind control"],"keywordGroups":[["telepath","telepathy","telepathic","mind read","mind control","mind reading"],["telekin","telekinesis","telekinetic","phoenix","move objects","moving objects"]],"minKeywordGroups":1},{"id":165,"question":"What is Kitty Pryde's mutant ability?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"Phasing through solid objects","acceptedAnswers":["Phasing through solid objects","Phasing","Phase through walls","Intangibility","Walk through walls","Phase through solid objects","Passing through objects","Phase","Walking through walls","Phasing through walls","Intangible","Becoming intangible","Wall phasing","Go through walls","Phases through objects"],"keywordGroups":[["phas","intangib","through walls","through solid","through objects","pass through","walk through","go through","goes through","ghost"]],"minKeywordGroups":1},{"id":166,"question":"What is Quicksilver's mutant ability?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"Super speed","acceptedAnswers":["Super speed","Speed","Fast","Super fast","Superhuman speed","Moving at high speeds","Moves fast","Fast running","Running fast","Incredible speed","Extreme speed","Rapid movement","Time slowing","Time slowdown","Speedster"],"keywordGroups":[["speed","fast","quick","run","velocity","rapid","swift","speedster"]],"minKeywordGroups":1},{"id":167,"question":"What is Beast's mutation?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"Superhuman strength and agility with blue fur","acceptedAnswers":["Superhuman strength and agility with blue fur","Strength","Agility","Blue fur","Super strength","Enhanced strength","Superhuman strength","Animal-like abilities","Animalistic traits","Enhanced agility","Blue fur and strength","Strength and agility","Fur","Beastlike","Feral","Animal traits","Animalistic features","Superhuman agility","Blue"],"keywordGroups":[["strength","strong","strenght","agil","agility","fur","blue","animal","animalistic","beast","feral","superhuman","super human","enhanced","reflex","reflexes","claws","fangs"]],"minKeywordGroups":1},{"id":168,"question":"What is Professor X's mutation?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"Telepathy","acceptedAnswers":["Telepathy","Mind reading","Mind control","Read minds","Reading minds","Mind powers","Mind reader","Telepathy and mind control","Reading thoughts","Control minds","Control other minds","Psychic","Psychic powers","Mental powers","Mind link"],"keywordGroups":[["telepath","telepathy","telepathic","mind","psychic","thought","thoughts","mental"]],"minKeywordGroups":1},{"id":169,"question":"What is Magneto's mutation?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"Magnetism","acceptedAnswers":["Magnetism","Magnetic","Magnetism control","Magnetic manipulation","Control magnetic fields","Control metal","Magnetic fields","Metal control","Control of magnetism","Magnetic powers","Manipulate metal","Manipulates magnetism","Controls magnetism","Metal manipulation","Magnetokinesis","Magnetic field manipulation","Controlling metal","Moving metal","Metal"],"keywordGroups":[["magnet","magnetic","magnetism","magnetokinesis","metal","metals"]],"minKeywordGroups":1},{"id":170,"question":"What is Storm's mutation?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"Weather manipulation","acceptedAnswers":["Weather manipulation","Weather control","Control the weather","Weather","Controls weather","Weather powers","Manipulates weather","Manipulate the weather","Weather mastery"],"keywordGroups":[["weather","lightning","thunder","storm","climate","wind","rain"]],"minKeywordGroups":1},{"id":171,"question":"What is the name of the mutant-detection machine?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"Cerebro","acceptedAnswers":["Cerebro","Cerebro machine","The Cerebro","Cerebro device"]},{"id":172,"question":"What is the name of the organization that creates mutant-hunting Sentinels?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"Trask Industries","acceptedAnswers":["Trask Industries","Trask Industry","Trask","Trask Corp","Trask Corporation","Trask Enterprises","Trask Inc","Trask Incorporated"]},{"id":173,"question":"Which X-Men movie takes place primarily in the 1960s?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"X-Men: First Class","acceptedAnswers":["X-Men: First Class","First Class","First Class (2011)","X-Men: 1st Class"]},{"id":174,"question":"Which X-Men movie takes place primarily in the 1970s?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"X-Men: Days of Future Past","acceptedAnswers":["X-Men: Days of Future Past","Days of Future Past","DOFP","X-Men: DOFP"]},{"id":175,"question":"Which X-Men movie takes place primarily in the 1980s?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"X-Men: Apocalypse","acceptedAnswers":["X-Men: Apocalypse","Apocalypse","Apocalypse (2016)"]},{"id":176,"question":"Which X-Men movie is set largely in Japan?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"The Wolverine","acceptedAnswers":["The Wolverine","Wolverine","The Wolverine (2013)","Wolverine (2013)"]},{"id":177,"question":"Which X-Men movie prominently features the Sentinels?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"X-Men: Days of Future Past","acceptedAnswers":["X-Men: Days of Future Past","Days of Future Past","DOFP"]},{"id":178,"question":"Which X-Men movie features the Four Horsemen?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"X-Men: Apocalypse","acceptedAnswers":["X-Men: Apocalypse","Apocalypse"]},{"id":179,"question":"Which X-Men movie features the Weapon X program?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"X-Men Origins: Wolverine","acceptedAnswers":["X-Men Origins: Wolverine","Wolverine Origins","Origins Wolverine","X2","X-Men 2","X2: X-Men United","X-Men Origins","The Wolverine Origins"]},{"id":180,"question":"Which X-Men movie features the Dark Phoenix storyline?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"X-Men: The Last Stand","acceptedAnswers":["X-Men: The Last Stand","The Last Stand","X-Men Last Stand","Last Stand","X-Men 3","Dark Phoenix","X-Men: Dark Phoenix","X3","X-Men: Dark Phoenix (2019)"],"keywordGroups":[["last stand","dark phoenix","x3","x men 3","xmen 3","phoenix"]],"minKeywordGroups":1},{"id":181,"question":"What is Wolverine's brother's name?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"Victor Creed","acceptedAnswers":["Victor Creed","Sabretooth","Victor Creed (Sabretooth)","Victor","Creed","Sabretooth Victor Creed","Victor Creed aka Sabretooth"]},{"id":182,"question":"What is Mystique's full name?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"Raven Darkholme","acceptedAnswers":["Raven Darkholme","Raven","Darkholme","Raven Darkholme (Mystique)"]},{"id":183,"question":"What is Gambit's mutant ability?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"Charging objects with kinetic energy to make them explode","acceptedAnswers":["Charging objects with kinetic energy to make them explode","Kinetic energy","Kinetic energy manipulation","Charging objects with kinetic energy","Explode objects","Make things explode","Exploding cards","Kinetic charge","Charge objects","Charges objects with energy","Kinetic","Energy charging","Charge objects with kinetic energy","Kinetic energy absorption","Kinetic energy charging","Energy absorption","Kinetic energy blasts","Explosive cards","Kinetic charging","Bo staff charge","Charging cards","Explosive kinetic energy","Kinetic energy explosions"],"keywordGroups":[["kinetic","charge","charging","charged","energy","explode","explosive","explosion","explosions","exploding","cards"]],"minKeywordGroups":1},{"id":184,"question":"What is Nightcrawler's mutant ability?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"Teleportation","acceptedAnswers":["Teleportation","Teleport","Teleporting","Teleportation (bamf)","Bamf","Teleportation ability","Teleportashun","Teleport ability","Short-range teleportation","Tellaport"]},{"id":185,"question":"What is Colossus' mutant ability?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"Organic steel","acceptedAnswers":["Organic steel","Turning skin into metal","Metal skin","Steel skin","Turn into metal","Transform into metal","Organic metal","Skin turns into steel","Metallic skin","Turns into steel","Turning into steel","Steel","Metal","Becoming metal","Skin to metal","Transform skin into steel","Metal transformation","Steel transformation","Armor skin","Steel body","Metal body","Metallic form","Organic steel form","Superhuman strength and steel skin","Steel form","Super strength and metal skin","Metal form","Organic steel transformation","Organic steel skin","Metallic transformation","Turning his body into steel","Turning body to metal"],"keywordGroups":[["metal","steel","metallic","armor","armour","organic steel","iron","adamantium"]],"minKeywordGroups":1},{"id":186,"question":"What is the name of the fictional island associated with X-Men: The Last Stand?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"Alcatraz","acceptedAnswers":["Alcatraz","Alcatraz Island","Alcatraz Island San Francisco"]},{"id":187,"question":"Which actor played Professor X in the original trilogy?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"Patrick Stewart","acceptedAnswers":["Patrick Stewart","Sir Patrick Stewart","Stewart","Patrik Stuart"]},{"id":188,"question":"Which actor played the younger Professor X?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"James McAvoy","acceptedAnswers":["James McAvoy","McAvoy","Jim McAvoy"]},{"id":189,"question":"Which two actors portrayed Magneto in different periods of the X-Men timeline?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"Ian McKellen and Michael Fassbender","acceptedAnswers":["Ian McKellen and Michael Fassbender","Michael Fassbender and Ian McKellen","McKellen and Fassbender","Fassbender and McKellen","Sir Ian McKellen and Michael Fassbender","Ian McKellen, Michael Fassbender","Michael Fassbender, Ian McKellen"],"keywordGroups":[["mckellen","mckellan","mckelen"],["fassbender","fassbinder","fasbender"]],"minKeywordGroups":2},{"id":190,"question":"Which X-Men film has the earliest chronological setting?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"X-Men: Apocalypse","acceptedAnswers":["X-Men: Apocalypse","Apocalypse","X-Men Origins: Wolverine","Origins Wolverine","Wolverine Origins","Apocalypse (2016)"]},{"id":191,"question":"Which X-Men film was the first to receive an R rating?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"Deadpool","acceptedAnswers":["Deadpool","Deadpool (2016)","Deadpul","Logan","Logan (2017)"]},{"id":192,"question":"Which X-Men movie was released immediately before Deadpool?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"X-Men: Days of Future Past","acceptedAnswers":["X-Men: Days of Future Past","Days of Future Past","DOFP","Days of Future Past (2014)"]},{"id":193,"question":"Which X-Men movie was released immediately after X-Men: First Class?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"The Wolverine","acceptedAnswers":["The Wolverine","Wolverine","The Wolverine (2013)","Wolverine (2013)"]},{"id":195,"question":"What is Daredevil's real name?","series":"Standalone Series","type":"TV Show","difficulty":"Easy","answer":"Matt Murdock","acceptedAnswers":["Matt Murdock","Matthew Murdock","Matthew Michael Murdock","Murdock"]},{"id":196,"question":"What is Jessica Jones' profession?","series":"Standalone Series","type":"TV Show","difficulty":"Easy","answer":"Private investigator","acceptedAnswers":["Private investigator","Private detective","PI","P.I","Detective","Private eye","Investigator"]},{"id":197,"question":"What is Luke Cage's real name?","series":"Standalone Series","type":"TV Show","difficulty":"Easy","answer":"Carl Lucas","acceptedAnswers":["Carl Lucas","Luke Cage","Power Man","Lucas","Carl Luke"]},{"id":198,"question":"What is Iron Fist's real name?","series":"Standalone Series","type":"TV Show","difficulty":"Easy","answer":"Danny Rand","acceptedAnswers":["Danny Rand","Daniel Rand","Daniel Thomas Rand","Rand","Daniel Randall","Dan Rand","Danny Rand Iron Fist"]},{"id":199,"question":"What is Punisher's real name?","series":"Standalone Series","type":"TV Show","difficulty":"Easy","answer":"Frank Castle","acceptedAnswers":["Frank Castle","Francis Castle","Frank Castiglione","Frank Castiglione Jr","Castle","Francis Castiglione"]},{"id":200,"question":"What is the name of the superhero team formed by Daredevil, Jessica Jones, Luke Cage and Iron Fist?","series":"Standalone Series","type":"TV Show","difficulty":"Easy","answer":"The Defenders","acceptedAnswers":["The Defenders","Defenders","Defenders (team)","The Defenders team","Marvel's Defenders","Defenders Netflix","The Defenders (Marvel)","Defenders (Marvel)","The Defenders show","The Defenders Netflix"],"keywordGroups":[["defender","defenders","defendors","defendor"]],"minKeywordGroups":1},{"id":201,"question":"What profession does Matt Murdock have?","series":"Standalone Series","type":"TV Show","difficulty":"Medium","answer":"Lawyer","acceptedAnswers":["Lawyer","Attorney","Defense attorney","Defense lawyer","Laywer","Attorney at law","Lawyer/vigilante","Law","Legal","Atternay","Attornie","Atourney","The lawyer","A lawyer","He is a lawyer","Criminal lawyer","Criminal defense lawyer","Criminal defense attorney","Trial lawyer","Trial attorney","Court lawyer","Public defender"]},{"id":202,"question":"What is the name of Matt Murdock's law partner?","series":"Standalone Series","type":"TV Show","difficulty":"Medium","answer":"Foggy Nelson","acceptedAnswers":["Foggy Nelson","Franklin Nelson","Franklin Foggy Nelson","Foggy","Nelson","Foogie Nelson","Frank Nelson"]},{"id":203,"question":"What is the name of Jessica Jones' private-investigation agency?","series":"Standalone Series","type":"TV Show","difficulty":"Medium","answer":"Alias Investigations","acceptedAnswers":["Alias Investigations","Alias","AKA Alias Investigations","Alias Inc","Alias Investigations LLC","AKA Investigations","AKA Alias","Alias Investigashun","Alias Detective Agency","Alias Agency","Alias Private Investigations","Alias Investigations Agency","Alias PI","AKA Jessica Jones"]},{"id":204,"question":"What is the name of Luke Cage's neighborhood?","series":"Standalone Series","type":"TV Show","difficulty":"Medium","answer":"Harlem","acceptedAnswers":["Harlem","Harlem NYC","Harlem New York","Harelm","Harlem New York City","Harlem in New York","Harlem in NYC"]},{"id":205,"question":"What is the name of Danny Rand's martial-arts organization?","series":"Standalone Series","type":"TV Show","difficulty":"Medium","answer":"K'un-Lun","acceptedAnswers":["K'un-Lun","Kunlun City","The Order of the Crane Mother","Crane Mother","Order of the Crane Mother","Crane Mother Order","Order of Crane Mother","The Crane Mother"]},{"id":206,"question":"What is the name of Frank Castle's military nickname?","series":"Standalone Series","type":"TV Show","difficulty":"Medium","answer":"The Punisher","acceptedAnswers":["The Punisher","Punisher","Castle","Captain Castle","Frank Castle","Sniper","Marine Recon","Force Recon","The Pun","Pun","Punisher (Frank Castle)","Punisher (Marvel)","Punishhar","Frank Castle (Punisher)","The Punisher Frank Castle","Frank Castle the Punisher"]},{"id":207,"question":"What is the name of Daredevil's primary weapon?","series":"Standalone Series","type":"TV Show","difficulty":"Medium","answer":"Billy club","acceptedAnswers":["Billy club","Baton","Club","Daredevil's billy club","Bilyclub","Billie clubs","Billy Club (Baton)","Baton Club","Club Baton","Baton/Billy Club","Billy club or baton","Baton or billy club","The billy club","His billy club","A baton","The baton","His baton","Two batons"],"keywordGroups":[["billy","club","baton","clubs","batons","stick"]],"minKeywordGroups":1},{"id":208,"question":"What is the name of the fictional law firm associated with Daredevil?","series":"Standalone Series","type":"TV Show","difficulty":"Hard","answer":"Nelson and Murdock","acceptedAnswers":["Nelson and Murdock","Nelson Murdock","Nelson and Murdock Law","Nelson and Murdock Attorneys at Law","Nelson and Murdock Law Firm","Murdock and Nelson","Nelson Murdock and Page","Nelson and Murdock and Page","Nelson and Murdock Legal","Nelson Murdock Law","Nelson Murdock Attorneys","Nelson Murdock Law Firm","Nelson Murdock Page","Nelson Murdock and Page Law","Nelson Murdock and Page Law Firm","Nelson and Murdock and Page Law Firm","Nelson and Murdock, Page"],"keywordGroups":[["nelson","nelsen","nielson","nielsen"],["murdock","murdoch","murdok"]],"minKeywordGroups":2},{"id":209,"question":"What is the name of Jessica Jones' former superhero identity?","series":"Standalone Series","type":"TV Show","difficulty":"Hard","answer":"Jewel","acceptedAnswers":["Jewel","Jewel (Jessica Jones)","Jwel","Jewl","Jule","The Jewel","Jessica Jewel","Jessica Jones Jewel","Jewel superhero","Jewel the superhero","Jewel hero","Jewel the hero","Jessica Jones","Jewel (aka Jessica Jones)","Jewel also known as Jessica Jones"]},{"id":210,"question":"What is the name of the prison associated with Frank Castle?","series":"Standalone Series","type":"TV Show","difficulty":"Hard","answer":"Ryker's Island","acceptedAnswers":["Ryker's Island","Ryker's","Rikers Island Prison","Rikers Island Penitentiary","Ryker's Island Correctional Facility","Rikers Island Jail","Ryker's Island Correctional"]},{"id":212,"question":"What is the name of the city Danny Rand returns to?","series":"Standalone Series","type":"TV Show","difficulty":"Hard","answer":"New York City","acceptedAnswers":["New York City","New York","NYC","New York, NY","NY","N.Y.C","New York City, NY","New York USA","New York State","New York (New York City)","Manhattan","Manhattan NYC","Manhattan, New York","N.Y","New Yrok","Nwe York","The Big Apple","Big Apple"]},{"id":214,"question":"What is Venom's human host's name?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Eddie Brock","acceptedAnswers":["Eddie Brock","Edward Brock","Edward Charles Allan Brock","Brock","Edie Brok","Edi Brock","Eddie Brk","Eddie B","Eddie"]},{"id":215,"question":"What is Eddie Brock's profession?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Journalist","acceptedAnswers":["Journalist","Reporter","Investigative journalist","Investigative reporter","News reporter","TV reporter","Television reporter","The journalist","He is a journalist","Newsman","News anchor","Anchor","Press","Reporter/Journalist","Journalist/Reporter"]},{"id":216,"question":"What is Morbius's profession?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Doctor","acceptedAnswers":["Doctor","Biochemist","Scientist","Physician","Doctor/Scientist","Medical Doctor","Haematologist","Doctor Michael Morbius","Dr. Michael Morbius","Dr Morbius","Biologist","A doctor","The doctor","He is a doctor","Dcotor","Doc","Dr","MD","M.D","Scientist/Doctor","Biochemist/Doctor","Doctor/Biochemist","Doctor and scientist","Scientist and doctor","Doctor and biochemist","Biochemist and doctor","Nobel Prize winning biochemist","Nobel-winning biochemist","Nobel Prize winner","Nobel winner","Nobel laureate","Nobel Prize laureate","Nobel Prize-winning scientist","Nobel-winning scientist","Nobel-winning doctor","Nobel Prize winning doctor"],"keywordGroups":[["doctor","dr","scientist","biochemist","physician","medic","medical","biologist","haematolog","hematolog","researcher","nobel"]],"minKeywordGroups":1},{"id":217,"question":"What is Blade's primary occupation?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Vampire hunter","acceptedAnswers":["Vampire hunter","Vampire slayer","Vampire killer","Hunter of vampires","Vampire hunting","Vamp hunter","Vampire Slayer/Hunter","Vampire hunter/slayer","Slayer","Hunter","Vampire hunter and slayer","Vampire slayer and hunter","Vampire hunter (half-vampire)","Half-vampire hunter","Daywalker hunter","Daywalker","The Daywalker","Vampire hunter - Blade","Blade the vampire hunter","Blade vampire hunter"],"keywordGroups":[["vampire","vampyre","vamp","vampir"],["hunter","slayer","killer","hunting","hunters","slaying","hunt","slay"]],"minKeywordGroups":2},{"id":218,"question":"Who played Blade in the original Blade trilogy?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Wesley Snipes","acceptedAnswers":["Wesley Snipes","Snipes","Wes Snipes","Wesley Snipes (Blade)","Wesley Snipes as Blade"]},{"id":219,"question":"What is Johnny Blaze's profession?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Stunt motorcyclist","acceptedAnswers":["Stunt motorcyclist","Stuntman","Stunt rider","Stunt motorcycle rider","Motorcycle stuntman","Stunt cyclist","Motorcycle stunt rider","Daredevil","Stunt performer","Stunt motorbike rider","Stunt","Motorcycle daredevil","Stunt motorcycle performer","Stunt motorcycle stunt rider","Motorbike stunt rider","Motorbike stuntman","Motorcycle Stunt Performer","Stunt motorbiker"],"keywordGroups":[["stunt","stuntman","stuntmen","stunts","daredevil","motorcycle","motorcyclist","biker"]],"minKeywordGroups":1},{"id":220,"question":"Which actor played Johnny Blaze?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Nicolas Cage","acceptedAnswers":["Nicolas Cage","Nick Cage","Cage","Nicolas Kim Coppola","Nicholas Coppola","Nicolas Cage (Johnny Blaze)","Nicolas Cage as Johnny Blaze","Nicolas Cage as Ghost Rider"]},{"id":221,"question":"Which actor played the Human Torch in the 2005 Fantastic Four?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Chris Evans","acceptedAnswers":["Chris Evans","Christopher Evans","Evans","Chris Evans (Human Torch)","Chris Evans as Human Torch","Chris Evans as Johnny Storm","Chris Evans as the Human Torch","Chirs Evvans"]},{"id":222,"question":"Which actor played Doctor Doom in the 2005 Fantastic Four?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Julian McMahon","acceptedAnswers":["Julian McMahon","McMahon","Julian McMahon (Doctor Doom)","Julian McMahon as Doctor Doom","Julian McMahon as Dr Doom","Julian McMahon as Victor Von Doom"]},{"id":224,"question":"What is Venom's symbiote called?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Venom","acceptedAnswers":["Venom","Venom symbiote","The symbiote","Klyntar","Symbiote","Vemon","Venom the symbiote","Venmo","Venommm"]},{"id":225,"question":"What is the name of the symbiote associated with Cletus Kasady?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Carnage","acceptedAnswers":["Carnage","Carnage symbiote"]},{"id":226,"question":"What is the name of the corporation associated with Venom?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Life Foundation","acceptedAnswers":["Life Foundation","The Life Foundation","Life Foundation Inc","Life Foundation Incorporated","Life Foundation Corp","Life Foundation Corporation","Life Foundation Company","The Life Foundation Inc","The Life Foundation Corp"]},{"id":228,"question":"What is Blade's half-human, half-vampire status commonly called?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Daywalker","acceptedAnswers":["Daywalker","The Daywalker","Daywlaker","Dyawalker","Daywalk","Daywa","Daywalerr","Daywalker (Blade)","Blade the Daywalker","The Daywalker (Blade)"]},{"id":229,"question":"What is the name of the vampire played by Stephen Dorff in Blade?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Deacon Frost","acceptedAnswers":["Deacon Frost","Frost","Deacn Forst","Deacon Frostiee","Deacon Frost (Blade)","Deacon Frost the vampire","Deacon Frost (vampire)"]},{"id":230,"question":"What is the name of Johnny Blaze's motorcycle?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Hellcycle","acceptedAnswers":["Hellcycle","Ghost Rider's motorcycle","The Hellcycle","Hellcycel","Hellsicle","Hellcyc","Hellc","Hell","Hellcicl","Hellcycle (Ghost Rider's bike)","Hellcycle (motorcycle)"]},{"id":231,"question":"What is the name of Doctor Doom's fictional country?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Latveria","acceptedAnswers":["Latveria","Latverai","Latvira","Latveria (country)","Kingdom of Latveria","The Kingdom of Latveria","Latveria kingdom","Latveria nation","Latveria state","Latveria (fictional country)","Latveria (fictional nation)"]},{"id":232,"question":"Which Fantastic Four member can stretch his body?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Mr. Fantastic","acceptedAnswers":["Mr. Fantastic","Mister Fantastic","Reed Richards","Mr. Fantastic (Reed Richards)","Reed","Richards","Mr Fantastic (Reed)","Mister Fantastic (Reed Richards)","Reed Richards (Mr Fantastic)","Reed Richards (Mister Fantastic)"]},{"id":233,"question":"Which Fantastic Four member can become invisible?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Invisible Woman","acceptedAnswers":["Invisible Woman","Sue Storm","Susan Storm","Invisible Girl","The Invisible Woman","Sue Storm Richards","Susan Storm Richards","Susan Storm Invisible Woman","Sue Storm Invisible Woman","Sue Storm (Invisible Girl)","Susan Storm (Invisible Girl)","Sue","Woman","Storm","Girl","Richards","Womna","Womn","Wman"]},{"id":234,"question":"Which Fantastic Four member can control fire?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Human Torch","acceptedAnswers":["Human Torch","Johnny Storm","The Human Torch","Johnny","Storm","Human Torch (Johnny Storm)","Human Torch (Johnny)","Johnny Storm (Human Torch)","Flame On"]},{"id":235,"question":"Which Fantastic Four member has a rocky appearance?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"The Thing","acceptedAnswers":["The Thing","Thing","Ben Grimm","Benjamin Grimm","Benjamin Jacob Grimm","Grimm","Teh Thing","The Tihng","The Thing (Ben Grimm)","Ben Grimm (The Thing)","Bne Grimm","It's Clobberin' Time","Clobberin Time"]},{"id":236,"question":"What is Doctor Doom's real name?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Victor von Doom","acceptedAnswers":["Victor von Doom","Doctor Doom","Dr Doom","Von Doom","Doom"]},{"id":238,"question":"What is the name of the symbiote species?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Klyntar","acceptedAnswers":["Klyntar","Klyntar species","Kylntar","Klyntar (symbiote)","Symbiotes"]},{"id":239,"question":"What disease does Morbius attempt to cure?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"A rare blood disease","acceptedAnswers":["A rare blood disease","Blood disease","Blood disorder","Rare blood disorder","Blood condition","Rare blood condition","Rare blood illness","Blood illness","Rare blood sickness","Blood sickness","Rare disease","Rare disease of the blood","Disease of the blood","His blood disease","His blood disorder","His rare blood disease","His rare blood disorder","Blood","Barth Syndrome","Barth"],"keywordGroups":[["blood"]],"minKeywordGroups":1},{"id":240,"question":"What is the name of the character played by Stephen Dorff in Blade?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Deacon Frost","acceptedAnswers":["Deacon Frost","Frost"]},{"id":241,"question":"What is the name of the organization associated with The New Mutants?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Essex Corporation","acceptedAnswers":["Essex Corporation","Essex Corp","Essex","Essex Co","Essex Company","The Essex Corporation","The Essex Corp"]},{"id":243,"question":"What is the fictional country ruled by Doctor Doom?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Latveria","acceptedAnswers":["Latveria"]},{"id":244,"question":"Which Marvel movie stars Nicolas Cage as Johnny Blaze?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Ghost Rider","acceptedAnswers":["Ghost Rider","Ghost Rider (2007)","Ghost Rid","Ghost Rider: Spirit of Vengeance","Spirit of Vengeance","Ghost Rider (2007 film)","Ghost Rider film","Ghost Rider movie","The Ghost Rider"],"keywordGroups":[["ghost rider","ghostrider","ghost ryder"]],"minKeywordGroups":1},{"id":245,"question":"Which actor played Doctor Doom in Fantastic Four: Rise of the Silver Surfer?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Julian McMahon","acceptedAnswers":["Julian McMahon","McMahon"]},{"id":246,"question":"What is Deadpool's real name?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Wade Wilson","acceptedAnswers":["Wade Wilson","Wade Winston Wilson","Wilson","Wade"]},{"id":247,"question":"What color is Deadpool's costume?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Red","acceptedAnswers":["Red","Red and black","Red with black","Red/Black","Red costume","Red suit","Rd","Reed","Ref"],"keywordGroups":[["red","crimson","scarlet"]],"minKeywordGroups":1},{"id":248,"question":"Which actor plays Deadpool?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Ryan Reynolds","acceptedAnswers":["Ryan Reynolds","Reynolds","Ryan Reynolds (Deadpool)","Ryan Reynolds as Deadpool","Ryan Reynolds as Wade Wilson"]},{"id":249,"question":"What is Deadpool's girlfriend's name?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Vanessa","acceptedAnswers":["Vanessa","Vanessa Carlysen","Vanessa Carlisle","Vannesa","Vanessa Carlyle (Deadpool's girlfriend)","Vanessa (Deadpool's girlfriend)","Vanessa Wilson","Vanessa Carlysle Wilson","Vanessa Carlysle Deadpool","Vanessa Deadpool","Vanessa Carlysle (Copycat)","Copycat","Vanessa (Copycat)"]},{"id":250,"question":"What weapons does Deadpool commonly use?","series":"Other Marvel Movies","type":"Movie","difficulty":"Easy","answer":"Katanas and guns","acceptedAnswers":["Katanas and guns","Katanas","Swords and guns","Guns and swords","Guns","Swords","Pistols and katanas","Katanas and pistols","Katana swords","Dual katanas","Twin katanas","Pistols","Guns and katanas","Katanas, guns","Guns, katanas","Swords, guns","Guns, swords","Dual swords","Twin swords","Dual blades","Twin blades","Blades and guns","Guns and blades","Blades","Knives"],"keywordGroups":[["katana","katanas","sword","swords","gun","guns","pistol","pistols","blade","blades","knives","knife"]],"minKeywordGroups":1},{"id":251,"question":"What is Wade Wilson's profession before becoming Deadpool?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Mercenary","acceptedAnswers":["Mercenary","Special Forces soldier","Special forces","Soldier","Merc","Merc for hire","Mercenary for hire","Hired gun","Mercenary soldier","Former special forces","Ex-special forces","Mercenaries","Mercenray"],"keywordGroups":[["mercenar","merc","soldier","special forces","hitman","hired gun","assassin","operative"]],"minKeywordGroups":1},{"id":252,"question":"What is the name of Deadpool's blind roommate?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Blind Al","acceptedAnswers":["Blind Al","Al","Al Pulaski","Blind Al Pulaski","Blind Alice","Blind Albert","Blind Alfred","Blind Alvin","Blind Al (Deadpool's roommate)","Blind Al (roommate)","Blind Al (Deadpool)","Deadpool's roommate Blind Al","Deadpool's roommate Al","Deadpool's blind roommate Al","Deadpool's blind roommate","Blind roommate","Blind roommate Al"]},{"id":253,"question":"What is the name of Deadpool's taxi driver?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Dopinder","acceptedAnswers":["Dopinder","Dopindre","Dopinder (Deadpool's taxi driver)","Dopinder (taxi driver)","Dopinder the taxi driver","Deadpool's taxi driver Dopinder","Taxi driver Dopinder","Dopinder the cab driver","Dopinder cab driver","Dopinder the driver","Dopinder driver"]},{"id":254,"question":"What is Cable's real name?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Nathan Summers","acceptedAnswers":["Nathan Summers","Nathan Christopher Charles Summers","Nate Summers","Summers","Nathan Summers (Cable)","Cable Nathan Summers","Nathan Summers aka Cable"]},{"id":255,"question":"Which actor plays Cable?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Josh Brolin","acceptedAnswers":["Josh Brolin","Brolin","Josh Brolin (Cable)","Josh Brolin as Cable","Josh Brolin plays Cable","Josh Brolin (Thanos)","Josh Brolin as Thanos"]},{"id":256,"question":"Which actor plays Domino?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Zazie Beetz","acceptedAnswers":["Zazie Beetz","Beetz","Zazie Beetz (Domino)","Zazie Beetz as Domino","Zazie Beetz plays Domino"]},{"id":257,"question":"What is Domino's mutant ability?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Luck manipulation","acceptedAnswers":["Luck manipulation","Luck","Probability manipulation","Good luck","Manipulating luck","Control luck","Control of luck","Luck control","Luck powers","Probability","Luck/probability manipulation","Probability and luck manipulation","Manipulate luck","Manipulating probability","Control probability","Probability control","Probability powers","Probability alteration","Alter probability","Altering probability","Probability warping","Warp probability","Warping probability","Probability field manipulation","Probability field","Luck-based powers","Luck-based","Fortune","Good fortune","Fortune manipulation","Manipulate fortune","Control fortune","Fortune control","Fortune powers","Fate manipulation","Manipulate fate","Fate","Fate control","Control fate","Fate powers","Chance manipulation","Manipulate chance","Chance","Chance control","Control chance","Chance powers","Coincidence","Coincidence manipulation","Manipulate coincidence","Control coincidence","Coincidence control","Coincidence powers"],"keywordGroups":[["luck","lucky","probability","fortune","chance","fate","coincidence","good luck"]],"minKeywordGroups":1},{"id":258,"question":"What are Deadpool's two preferred swords commonly called?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Katanas","acceptedAnswers":["Katanas","Two katanas","Dual katanas","Katana swords","Bea Arthur and Betty White","Betty White and Bea Arthur","Bea and Betty","Betty and Bea","Bea Arthur","Betty White","Swords","Katanna","Two katana swords","Dual katana swords","Twin katana"],"keywordGroups":[["katana","katanas","sword","swords","bea arthur","betty white"]],"minKeywordGroups":1},{"id":259,"question":"What is the name of Deadpool's X-Men teammate who can control luck?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Domino","acceptedAnswers":["Domino","Neena Thurman","Neena","Thurman","Domino (Neena Thurman)","Neena Thurman (Domino)","Domnio","Doimno","Domino x","Domino X-Force","Domino from X-Force","Domino of X-Force","Domino the X-Force member","Domino X-Force member","Domino X-Force teammate"]},{"id":260,"question":"What is Cable's mutant ability?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Telepathy and telekinesis","acceptedAnswers":["Telepathy and telekinesis","Telepathy","Telekinesis","Mind powers","Psychic powers","Psychic","Telepathy, telekinesis","Telekinesis and telepathy","Telekinesis, telepathy","Telepathic and telekinetic","Telekinetic and telepathic","Telepathic, telekinetic","Telekinetic, telepathic","Mind control","Mind reading","Moving objects with his mind","Moving objects with mind","Moving objects with the mind","Move objects with his mind","Move objects with mind","Move objects with the mind"],"keywordGroups":[["telepath","telepathy","telepathic","telekin","telekinesis","telekinetic","psychic","mind"]],"minKeywordGroups":1},{"id":263,"question":"What is the name of the orphanage featured in Deadpool 2?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Essex House","acceptedAnswers":["Essex House","Essex House Orphanage","Essex House Home for Mutant Wayward Youth","Essex House Home for Mutant Youth","Essex House Home","Essex Orphanage","Essex Home for Mutant Wayward Youth","Essex Home for Mutant Youth","Essex House Orphanage (Deadpool 2)","Essex House Home for Mutant Wayward Youth (Deadpool 2)"],"keywordGroups":[["essex"]],"minKeywordGroups":1},{"id":264,"question":"Who plays Iron Man?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Robert Downey Jr.","acceptedAnswers":["Robert Downey Jr","Robert Downey Junior","Robert Downey","RDJ","Downey Jr","Downey"]},{"id":265,"question":"Who plays Captain America?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Chris Evans","acceptedAnswers":["Chris Evans","Christopher Evans","Evans"]},{"id":266,"question":"Who plays Thor?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Chris Hemsworth","acceptedAnswers":["Chris Hemsworth","Christopher Hemsworth","Hemsworth"]},{"id":267,"question":"Who plays Black Widow?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Scarlett Johansson","acceptedAnswers":["Scarlett Johansson","Johansson"]},{"id":268,"question":"Who plays Nick Fury?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Samuel L. Jackson","acceptedAnswers":["Samuel L. Jackson","Sam Jackson","Samuel Leroy Jackson","Jackson"]},{"id":269,"question":"Who plays Loki?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Tom Hiddleston","acceptedAnswers":["Tom Hiddleston","Thomas Hiddleston","Hiddleston"]},{"id":270,"question":"Who plays Doctor Strange?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Benedict Cumberbatch","acceptedAnswers":["Benedict Cumberbatch","Cumberbatch"]},{"id":271,"question":"Who plays Spider-Man?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Tom Holland","acceptedAnswers":["Tom Holland","Thomas Holland","Holland"]},{"id":272,"question":"Who plays Black Panther?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Chadwick Boseman","acceptedAnswers":["Chadwick Boseman","Boseman"]},{"id":273,"question":"Who plays Star-Lord?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Chris Pratt","acceptedAnswers":["Chris Pratt","Christopher Pratt","Pratt"]},{"id":274,"question":"Who plays Gamora?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Zoe Saldaña","acceptedAnswers":["Zoe Saldaña","Saldana"]},{"id":275,"question":"Who plays Thanos?","series":"Infinity Saga","type":"Movie","difficulty":"Easy","answer":"Josh Brolin","acceptedAnswers":["Josh Brolin","Brolin"]},{"id":276,"question":"Who plays Wolverine?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"Hugh Jackman","acceptedAnswers":["Hugh Jackman","Jackman"]},{"id":277,"question":"Who plays Professor X in the original X-Men trilogy?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"Patrick Stewart","acceptedAnswers":["Patrick Stewart","Sir Patrick Stewart","Stewart"]},{"id":278,"question":"Who plays Professor X in the newer X-Men films?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"James McAvoy","acceptedAnswers":["James McAvoy","McAvoy"]},{"id":279,"question":"Who plays Magneto in the original X-Men films?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"Ian McKellen","acceptedAnswers":["Ian McKellen","Sir Ian McKellen","McKellen"]},{"id":280,"question":"Who plays Magneto in the newer X-Men films?","series":"X-Men","type":"Movie","difficulty":"Medium","answer":"Michael Fassbender","acceptedAnswers":["Michael Fassbender","Fassbender","Mike Fassbender"]},{"id":281,"question":"Who plays Deadpool?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Ryan Reynolds","acceptedAnswers":["Ryan Reynolds","Reynolds"]},{"id":282,"question":"Who plays Blade in the original trilogy?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Wesley Snipes","acceptedAnswers":["Wesley Snipes","Snipes","Wes Snipes"]},{"id":283,"question":"Who plays Ghost Rider in the Ghost Rider films?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Nicolas Cage","acceptedAnswers":["Nicolas Cage","Nick Cage","Cage"]},{"id":284,"question":"Which actor has portrayed the greatest number of different Marvel characters across live-action Marvel films?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Ryan Reynolds","acceptedAnswers":["Ryan Reynolds","Josh Brolin","Chris Evans","Michael Fassbender","Samuel L. Jackson","Hugh Jackman","Reynolds","Brolin"]},{"id":285,"question":"Which actor has portrayed Wolverine in the greatest number of X-Men films?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"Hugh Jackman","acceptedAnswers":["Hugh Jackman","Jackman"]},{"id":286,"question":"Which actor appeared in the most MCU films as the same character before the Multiverse Saga?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Samuel L. Jackson","acceptedAnswers":["Samuel L. Jackson","Robert Downey Jr","RDJ","Downey Jr","Sam Jackson","Jackson"]},{"id":287,"question":"Which actor has portrayed the most different Marvel characters across separate Marvel franchises?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Ryan Reynolds","acceptedAnswers":["Ryan Reynolds","Josh Brolin","Chris Evans","Michael Fassbender","Samuel L. Jackson","Hugh Jackman","Reynolds","Brolin"]},{"id":288,"question":"Which band performs \"Come and Get Your Love\"?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Redbone","acceptedAnswers":["Redbone","Redbone band","The Redbone","Red Boen"]},{"id":289,"question":"Which band performs \"Immigrant Song\"?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Led Zeppelin","acceptedAnswers":["Led Zeppelin","Led Zeppelin band","Led Zep"]},{"id":290,"question":"Which AC/DC song is strongly associated with Iron Man?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Back in Black","acceptedAnswers":["Back in Black","Shoot to Thrill","Highway to Hell","Hells Bells","Thunderstruck"]},{"id":291,"question":"What song is famously associated with the opening of Guardians of the Galaxy?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Come and Get Your Love","acceptedAnswers":["Come and Get Your Love","O-o-h Child","Ooh Child","Come and Get Your Love by Redbone"]},{"id":292,"question":"What song is associated with Star-Lord's dance scene in Guardians of the Galaxy?","series":"Infinity Saga","type":"Movie","difficulty":"Medium","answer":"Come and Get Your Love","acceptedAnswers":["Come and Get Your Love","Come and Get Your Love by Redbone"]},{"id":293,"question":"What song plays during the opening of Deadpool?","series":"Other Marvel Movies","type":"Movie","difficulty":"Medium","answer":"Angel of the Morning","acceptedAnswers":["Angel of the Morning","Angel of Morning","Juice Newton","Angel of the Morning (Juice Newton)","Angel of the Morning by Juice Newton"]},{"id":294,"question":"Which MCU film was the first to feature an Infinity Stone?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Thor","acceptedAnswers":["Thor","Captain America: The First Avenger","The First Avenger","Captain America","Thor (2011)","Captain America First Avenger","Cap 1"]},{"id":295,"question":"Which MCU film was the first to feature a post-credit scene?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Iron Man","acceptedAnswers":["Iron Man","Iron Man (2008)","The Iron Man","Iron Man One"]},{"id":296,"question":"Which MCU film was the first to feature the Avengers team?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"The Avengers","acceptedAnswers":["The Avengers","Avengers","The Avengers (2012)","Avengers (2012)","Marvel's The Avengers","Avengers Assemble","Avengers One","The Avengers One","Avengers movie","The Avengers movie","The Avengers film","Avengers film"]},{"id":297,"question":"Which MCU film has the shortest runtime?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"The Marvels","acceptedAnswers":["The Marvels","Marvels","The Marvels (2023)","Marvels (2023)","Captain Marvel 2","Captain Marvel 2: The Marvels"]},{"id":298,"question":"Which MCU film has the longest runtime?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Avengers: Endgame","acceptedAnswers":["Avengers: Endgame","Endgame","Avengers Endgame (2019)","Avengers 4","Avengers Four"]},{"id":299,"question":"Which MCU film was the first to use the Marvel Studios opening logo?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Iron Man","acceptedAnswers":["Iron Man","Iron Man (2008)","The Incredible Hulk","Incredible Hulk"]},{"id":300,"question":"Which X-Men film was the first to feature Deadpool?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"X-Men Origins: Wolverine","acceptedAnswers":["X-Men Origins: Wolverine","Wolverine Origins","Origins Wolverine","X-Men Origins","X-Men Origins: Wolverine (2009)","Origins"]},{"id":301,"question":"Which X-Men film was the first to feature a younger version of Professor X?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"X-Men: First Class","acceptedAnswers":["X-Men: First Class","First Class","X-Men: 1st Class","X-Men: The Last Stand","The Last Stand","X-Men Last Stand","X3","X-Men 3","X-Men Origins: Wolverine"]},{"id":302,"question":"Which Marvel film was the first to receive an Academy Award nomination?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Iron Man","acceptedAnswers":["Iron Man","Iron Man (2008)","The Iron Man"]},{"id":303,"question":"Which Marvel film was the first to win an Academy Award?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Black Panther","acceptedAnswers":["Black Panther","Black Panther (2018)","Spider-Man 2","Spider-Man 2 (2004)"]},{"id":304,"question":"Which Marvel film was the first to feature a Stan Lee cameo?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"X-Men","acceptedAnswers":["X-Men","X-Men (2000)","XMen","X-Men (2000 film)","The X-Men","X-Men 1","X-Men One","X-Men movie","X-Men film","The Trial of the Incredible Hulk","Trial of the Incredible Hulk","Trial of Incredible Hulk"]},{"id":305,"question":"Which MCU film contains the greatest number of Infinity Stones?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Avengers: Infinity War","acceptedAnswers":["Avengers: Infinity War","Infinity War","Avengers: Endgame","Endgame","Infinity War (2018)","Avengers: Infinity War (2018)","Avengers 3","Avengers Three"]},{"id":306,"question":"Which character has possessed the greatest number of different Infinity Stones?","series":"Infinity Saga","type":"Movie","difficulty":"Hard","answer":"Thanos","acceptedAnswers":["Thanos","Thanos (Infinity Saga)","Thanos the Mad Titan","Mad Titan","The Mad Titan","Thanos Mad Titan","Josh Brolin"]},{"id":307,"question":"Which X-Men film has the earliest chronological setting?","series":"X-Men","type":"Movie","difficulty":"Hard","answer":"X-Men: Apocalypse","acceptedAnswers":["X-Men: Apocalypse","Apocalypse","X-Men Origins: Wolverine","Origins Wolverine","Wolverine Origins"]},{"id":308,"question":"Which Marvel film has the longest title?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Doctor Strange in the Multiverse of Madness","acceptedAnswers":["Doctor Strange in the Multiverse of Madness","Multiverse of Madness","Doctor Strange 2","Dr Strange in the Multiverse of Madness","Doctor Strange in the Multiverse of Madness (2022)","Doctor Strange Multiverse of Madness","Dr Strange Multiverse of Madness","DS2"]},{"id":309,"question":"Which Marvel film has the shortest title?","series":"Other Marvel Movies","type":"Movie","difficulty":"Hard","answer":"Thor","acceptedAnswers":["Thor","Hulk","Blade","Thor (2011)","Hulk (2003)","The Hulk","Thor movie","Hulk movie"]}];
+{const _s=new Set(),_u=DB.filter(q=>{const k=q.question.trim().toLowerCase();return !_s.has(k)&&_s.add(k)});DB.length=0;DB.push(..._u);}
+const $=id=>document.getElementById('tv-'+id);
+const FIELDS={series:["Infinity Saga","Multiverse Saga","X-Men","Other Marvel Movies","Standalone Series"],type:["Movie","TV Show"],diff:["Easy","Medium","Hard"]};
+const LENS=[5,10,15,20,30,50];
+const sel={series:new Set(),type:new Set(),diff:new Set(),len:10};
+function chip(box,label,on,fn){const b=document.createElement('button');b.className='tv-chip';b.textContent=label;b.setAttribute('aria-pressed',on);b.onclick=()=>{fn(b)};$(box).appendChild(b);return b}
+for(const k in FIELDS)FIELDS[k].forEach(v=>chip(k,v,false,b=>{sel[k].has(v)?sel[k].delete(v):sel[k].add(v);b.setAttribute('aria-pressed',sel[k].has(v));update()}));
+LENS.forEach(n=>chip('len',n,n===sel.len,b=>{sel.len=n;[...$('len').children].forEach(c=>c.setAttribute('aria-pressed',c===b));update()}));
+document.querySelectorAll('#page-trivia [data-all]').forEach(b=>b.onclick=()=>{const k=b.dataset.all,all=sel[k].size<FIELDS[k].length;
+ sel[k]=new Set(all?FIELDS[k]:[]);[...$(k).children].forEach((c,i)=>c.setAttribute('aria-pressed',all));b.textContent=all?'Clear':'Select all';update()});
+const pool=()=>DB.filter(q=>sel.series.has(q.series)&&sel.type.has(q.type)&&sel.diff.has(q.difficulty));
+function update(){const n=pool().length;
+ $('start').disabled=n===0;
+ $('avail').textContent=!(sel.series.size&&sel.type.size&&sel.diff.size)?'Choose at least one option in each section.':
+  n===0?'No questions match this combination. Try adding more options.':
+  n<sel.len?`Only ${n} question${n>1?'s':''} match — your quiz will have ${n}.`:`${n} questions match your choices.`}
+update();
+let Q=[],i=0,score=0,log=[],answered=false;
+const shuffle=a=>{for(let j=a.length-1;j>0;j--){const k=Math.floor(Math.random()*(j+1));[a[j],a[k]]=[a[k],a[j]]}return a};
+const show=id=>['setup','quiz','result'].forEach(s=>$(s).classList.toggle('tv-hide',s!==id));
+function start(){Q=shuffle(pool()).slice(0,sel.len);
+ const seen=new Set();Q=Q.filter(q=>!seen.has(q.question)&&seen.add(q.question)); // avoid repeated wording
+ i=0;score=0;log=[];show('quiz');load();}
+function load(){const q=Q[i];answered=false;
+ $('prog').textContent=`Question ${i+1} of ${Q.length}`;$('sc').textContent=`Score: ${score}`;$('barfill').style.width=(i/Q.length*100)+'%';
+ $('tags').innerHTML=[q.series,q.type,q.difficulty].map(t=>`<span class="tv-tag">${t}</span>`).join('');
+ $('qtext').textContent=q.question;$('ans').value='';$('ans').disabled=false;$('fb').innerHTML='';
+ $('submit').textContent='Submit';$('ans').focus();}
+function submit(){const q=Q[i];
+ if(answered){i++;i<Q.length?load():finish();return}
+ const val=$('ans').value.trim();if(!val)return;
+ const ok=checkAnswer(val,q);if(ok)score++;answered=true;log.push({q,val,ok});
+ $('ans').disabled=true;$('sc').textContent=`Score: ${score}`;
+ $('fb').innerHTML=`<div class="tv-fb ${ok?'tv-ok':'tv-no'}">${ok?'✓ Correct!':'✗ Not quite.'}<small>Answer: ${esc(q.answer)}</small></div>`;
+ $('submit').textContent=i+1<Q.length?'Next question':'See results';$('submit').focus();}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const HK='marvel_trivia_hist';function hist(){try{return JSON.parse(localStorage.getItem(HK)||'[]')}catch{return[]}}function saveStats(p,re){const H=hist();if(re&&H.length)H[H.length-1]=p;else H.push(p);try{localStorage.setItem(HK,JSON.stringify(H.slice(-100)))}catch{}let cur=0,best=0;H.forEach(x=>{cur=x>=80?cur+1:0;best=Math.max(best,cur)});$('stats').textContent=`Games: ${H.length} · Best: ${Math.max(...H)}% · 80%+ streak: ${cur} (best ${best})`;}
+function finish(re){const p=Math.round(score/Q.length*100);show('result');
+ $('pct').textContent=p+'%';$('fin').textContent=`${score} out of ${Q.length} correct`;
+ $('msg').textContent=p===100?'Perfect score. True Avenger!':p>=80?'Impressive — Marvel expert!':p>=60?'Solid effort.':p>=40?'Not bad — keep watching.':'Time for a Marvel marathon!';
+ $('review').innerHTML=log.map((l,n)=>`<div class="tv-rev"><b class="${l.ok?'tv-ok':'tv-no'}">${l.ok?'✓':'✗'}</b> ${n+1}. ${esc(l.q.question)}<div class="tv-mu">Your answer: ${esc(l.val)}${l.ok?'':' · Correct: '+esc(l.q.answer)}${l.ok?'':` <button class=\"tv-ov\" data-ov=\"${n}\">Count as correct</button>`}</div></div>`).join('');
+ if(!re)window.scrollTo(0,0);saveStats(p,re);}
+$('review').addEventListener('click',e=>{const b=e.target.closest('.tv-ov');if(!b)return;const l=log[+b.dataset.ov];if(!l||l.ok)return;l.ok=true;score++;finish(true);});
+$('start').onclick=start;$('submit').onclick=submit;$('again').onclick=start;$('settings').onclick=()=>show('setup');
+$('ans').addEventListener('keydown',e=>{if(e.key==='Enter')submit()});
+
+})();
+</script>
+</body>
+</html>
